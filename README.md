@@ -19,6 +19,13 @@ Crate initial database for songs and albums.
 2) Then we can use the ID to query the Get Artist/Get Track api to enrich the data.
 
 
+## Database
+Tables
+- Artist
+- Tracks
+- Albums
+
+
 ## Future Improvements:
 1) Use this link https://developer.spotify.com/documentation/web-api/reference/get-an-artists-related-artists to pull related Artists,
 2) Create Spotify Playlists for the Greatest Songs of All Time
