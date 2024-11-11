@@ -80,11 +80,6 @@ async def main(base_url, file_path):
         await driver.get(base_url, wait_load=True)
         await driver.sleep(2)
 
-        # Deal with Pop Up window:
-        # elem = await driver.find_element(By.XPATH, "/html/body/div[5]/div/div/button")
-        # await elem.click()
-        # print("Pop Up Window button found and clicked!")
-
         # Parse trough the pages
         page_counter = 0
         while page_counter < 10:
@@ -135,18 +130,8 @@ async def main(base_url, file_path):
 
 if __name__ == "__main__":
     dir_path = pathlib.Path(__file__).parent.resolve()
-    base_urls = [
-        (
-            "rolling_stones_top_500_songs",
-            "https://www.rollingstone.com/music/music-lists/best-songs-of-all-time-1224767/",
-        ),
-        # (
-        #     "rolling_stones_top_500_albums",
-        #     "https://www.rollingstone.com/music/music-lists/best-albums-of-all-time-1062063/",
-        # ),
-    ]
-    for url in base_urls:
-        file_name, base_url = url
-        json_file_name = f"{file_name}_data.json"
-        file_path = os.path.join(dir_path, "data", json_file_name)
-        asyncio.run(main(base_url=base_url, file_path=file_path))
+    file_name = "rolling_stones_top_500_albums"
+    base_url = "https://www.rollingstone.com/music/music-lists/best-albums-of-all-time-1062063/"
+    json_file_name = f"{file_name}_data.json"
+    file_path = os.path.join(dir_path, "data", json_file_name)
+    asyncio.run(main(base_url=base_url, file_path=file_path))
