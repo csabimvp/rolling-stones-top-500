@@ -21,7 +21,7 @@ class ArticleData:
 
 
 def save_json(data, file_path):
-    with open(file_path, "r+", encoding="utf-8") as jsonFile:
+    with open(file_path, "r+") as jsonFile:
         jsonFile.seek(0)
         json.dump(data, jsonFile, indent=4, sort_keys=True, ensure_ascii=False)
         jsonFile.truncate()
@@ -134,6 +134,6 @@ if __name__ == "__main__":
     base_url = (
         "https://www.rollingstone.com/music/music-lists/best-songs-of-all-time-1224767/"
     )
-    json_file_name = f"{file_name}_data.json"
+    json_file_name = f"{file_name}.json"
     file_path = os.path.join(dir_path, "data", json_file_name)
     asyncio.run(main(base_url=base_url, file_path=file_path))
