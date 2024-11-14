@@ -3,3 +3,4 @@
 *.git
 /data/**/*.json
 /assets/**/*.json
+*__pycache__
