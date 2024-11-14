@@ -2,3 +2,4 @@
 *archive
 *.git
 /data/**/*.json
+/assets/**/*.json
