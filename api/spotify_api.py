@@ -1,3 +1,4 @@
+import base64
 import json
 import os
 import pathlib
@@ -111,28 +112,37 @@ class Authenticator:
     def refreshToken(self):
         isTokenExpired = self.isTokenExpired()
         if isTokenExpired:
+            # Admin for API call.
+            auth_client = self.getClientId() + ":" + self.getClientSecret()
+            auth_encode = "Basic " + base64.b64encode(auth_client.encode()).decode()
             payload = {
                 "grant_type": self.getGrantType(),
-                "client_id": self.getClientId(),
-                "code": self.getCode(),
                 "refresh_token": self.getRefreshToken(),
+                # "client_id": self.getClientId(),
+                # "code": self.getCode(),
             }
+            headers = {"Authorization": auth_encode}
             url = self.getRefreshTokenUrl()
-            r = requests.post(url=url, data=payload).json()
-            print(r)
-            expires_in = r["expires_in"]
-            new_expiry_date = self.today + timedelta(seconds=expires_in)
 
-            # Updating keys
-            self.keys["ACCESS_TOKEN"] = r["access_token"]
-            self.keys["EXPIRY_DATE"] = new_expiry_date.strftime("%Y-%m-%d %H:%M:%S")
-            try:
-                self.keys["SCOPE"] = r["scope"]
-                self.keys["REFRESH_TOKEN"] = r["refresh_token"]
-            except:
-                pass
-            # Saving to database.
-            self.saveJson()
+            # Refreshing Token
+            r = requests.post(url=url, headers=headers, data=payload)
+            if r.status_code == 200:
+                response = r.json()
+                expires_in = response["expires_in"]
+                new_expiry_date = self.today + timedelta(seconds=expires_in)
+
+                # Updating keys
+                self.keys["ACCESS_TOKEN"] = response["access_token"]
+                self.keys["EXPIRY_DATE"] = new_expiry_date.strftime("%Y-%m-%d %H:%M:%S")
+                try:
+                    self.keys["SCOPE"] = response["scope"]
+                    self.keys["REFRESH_TOKEN"] = response["refresh_token"]
+                except:
+                    pass
+                # Saving to database.
+                self.saveJson()
+            else:
+                print(r)
 
 
 @dataclass
@@ -145,6 +155,7 @@ class SearchItem:
 @dataclass
 class Tracks:
     name: str
+    rs_rank: int
     track_id: str
     artists: list
     album_id: str
@@ -180,9 +191,10 @@ class Artists:
 
 
 class SpotifyApi:
-    def __init__(self, raw_title, search_type, headers):
+    def __init__(self, raw_title, search_type, rs_rank, headers):
         self.raw_title = raw_title
         self.search_type = search_type
+        self.rs_rank = rs_rank
         self.headers = headers
         # Store API responses in data list
         self.track_id = None
@@ -191,7 +203,8 @@ class SpotifyApi:
         self.name = None
 
     def fetch_search_api(self):
-        url = f"https://api.spotify.com/v1/search?q={self.raw_title}&type={self.search_type}&market=GB"
+        limit = 5
+        url = f"https://api.spotify.com/v1/search?q={self.raw_title}&type={self.search_type}&market=GB&limit={limit}"
         r = requests.get(url=url, headers=self.headers)
 
         # We need to check the returned list against the query, because we may not be looking at the 0th item,
@@ -221,10 +234,11 @@ class SpotifyApi:
             explicit = response["explicit"]
             popularity = int(response["popularity"])
             track_number = int(response["track_number"])
-            external_urls = response["external_urls"]
+            external_urls = response["external_urls"]["spotify"]
 
             track = Tracks(
                 name=name,
+                rs_rank=self.rs_rank,
                 track_id=track_id,
                 artists=self.artists,
                 album_id=self.album_id,
@@ -239,6 +253,7 @@ class SpotifyApi:
 
     def fetch_get_artist_api(self):
         # Store API response in the respective dataclass
+        # Store already fetched Artists and check if the data is already available or not, to save duplicated API calls.
         return print("Api called!")
 
     def fetch_get_album_api(self):
@@ -246,34 +261,67 @@ class SpotifyApi:
         return print("Api called!")
 
 
-if __name__ == "__main__":
-    # Authenticate
-    authenticator = Authenticator("SPOTIFY")
-    # authenticator.requestAccessCode()
-    # authenticator.requestAccessToken()
+def save_json(data, folder_path):
+    file_name = "spotify_top_500_songs.json"
+    with open(os.path.join(folder_path, file_name), "r+") as jsonFile:
+        jsonFile.seek(0)
+        json.dump(
+            data,
+            jsonFile,
+            indent=4,
+            sort_keys=True,
+            ensure_ascii=False,
+        )
+        jsonFile.truncate()
 
-    # # Admin
-    dir_path = pathlib.Path(__file__).parent.parent.resolve()
-    file_name = "rolling_stones_top_500_songs"
-    json_file_name = f"{file_name}.json"
-    file_path = os.path.join(dir_path, "data", json_file_name)
 
-    # Calling Spotify API
-    data = json.load(open(file_path))
-    for item in data[:10]:
-        print(item["title"])
-
-        # Check if Token still valid:
-        isTokenExpired = authenticator.isTokenExpired()
-        if isTokenExpired:
-            authenticator.refreshToken()
+def main(folder_path):
+    file_name = "rolling_stones_top_500_songs.json"
+    scraped_data = json.load(open(os.path.join(folder_path, file_name)))
+    spotify_data = list()
+    counter = 0
+    while counter < len(scraped_data):
+        rank, title = scraped_data[counter]["rank"], scraped_data[counter]["title"]
+        print(f"#{rank} - {title}")
 
         s = SpotifyApi(
-            raw_title=item["title"],
+            raw_title=title,
+            rs_rank=rank,
             search_type="track",
             headers=authenticator.getHeaders(),
         )
 
         s.fetch_search_api()
         track = s.fetch_get_track_api()
-        print(track)
+        print(track["track_id"])
+        spotify_data.append(track)
+
+        # Save data to JSON after every 25 API calls.
+        if counter % 25 == 0 or counter == 499:
+            # Save data to JSON.
+            print(f"Saving data to {folder_path}...")
+            save_json(data=spotify_data, folder_path=folder_path)
+
+        counter += 1
+
+
+if __name__ == "__main__":
+    start = datetime.now()
+
+    # Authenticate
+    authenticator = Authenticator("SPOTIFY")
+    # # authenticator.requestAccessCode()
+    # authenticator.requestAccessToken()
+    isTokenExpired = authenticator.isTokenExpired()
+    if isTokenExpired:
+        authenticator.refreshToken()
+
+    # # Admin
+    dir_path = pathlib.Path(__file__).parent.parent.resolve()
+    folder_path = os.path.join(dir_path, "data")
+
+    # Calling Spotify API
+    main(folder_path=folder_path)
+
+    finished = datetime.now()
+    print(f"Script finished in: {finished - start}")
