@@ -184,6 +184,7 @@ class Albums:
 class Artists:
     name: str
     artists_id: str
+    album_id: list
     total_followers: int
     genres: list
     popularity: int
