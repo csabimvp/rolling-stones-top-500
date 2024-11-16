@@ -1,4 +1,3 @@
-import json
 import os
 from datetime import datetime
 
@@ -10,22 +9,6 @@ def write_insert_table():
     Function to write INSERT INTO TABLE (columns) (values)
     """
     pass
-
-
-def save_json(file_name, data, folder_path):
-    """
-    Function to save scraped API data into a JSON file as backup.
-    """
-    with open(os.path.join(folder_path, file_name), "r+") as jsonFile:
-        jsonFile.seek(0)
-        json.dump(
-            data,
-            jsonFile,
-            indent=4,
-            sort_keys=True,
-            ensure_ascii=False,
-        )
-        jsonFile.truncate()
 
 
 def main():
