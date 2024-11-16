@@ -14,7 +14,7 @@ CREATE TABLE
         rs_rank INTEGER,
         is_explicit BOOLEAN,
         popularity NUMERIC,
-        duration NUMERIC,
+        duration_ms NUMERIC,
         track_number_on_album NUMERIC,
         external_url VARCHAR
         -- album_id VARCHAR REFERENCES rstop500.albums
@@ -25,11 +25,11 @@ CREATE TABLE
     IF NOT EXISTS rstop500.artists (
         artist_id VARCHAR PRIMARY KEY,
         artist_name VARCHAR,
+        albums VARCHAR ARRAY,
         genres VARCHAR ARRAY,
-        popularity NUMERIC,
         total_followers NUMERIC,
-        external_url VARCHAR,
-        albums VARCHAR ARRAY
+        popularity NUMERIC,
+        external_url VARCHAR
     );
 
 CREATE TABLE
@@ -40,8 +40,10 @@ CREATE TABLE
         genres VARCHAR ARRAY,
         popularity NUMERIC,
         total_tracks NUMERIC,
-        external_url VARCHAR,
-        label VARCHAR
+        label VARCHAR,
+        release_date DATE,
+        album_image VARCHAR,
+        external_url VARCHAR
         -- artist_id VARCHAR,
         -- track_id VARCHAR REFERENCES rstop500.tracks,
     );

@@ -154,41 +154,43 @@ class SearchItem:
 
 @dataclass
 class Tracks:
-    name: str
-    rs_rank: int
     track_id: str
-    artists: list
-    album_id: str
-    duration_ms: int
-    explicit: bool
+    track_name: str
+    artist_ids: list
+    rs_rank: int
+    is_explicit: bool
     popularity: int
-    track_number: int
-    external_urls: str
+    duration_ms: int
+    track_number_on_album: int
+    external_url: str
+    release_date: str
+    album_id: str
 
 
 @dataclass
 class Albums:
-    name: str
     album_id: str
-    artists: list
-    total_tracks: int
-    album_image: str
-    release_date: str
+    album_name: str
+    rs_rank: int
     genres: list
     popularity: int
-    external_urls: str
+    total_tracks: int
     label: str
+    external_url: str
+    release_date: str
+    album_image: str
+    artist_id: str
 
 
 @dataclass
 class Artists:
-    name: str
     artists_id: str
-    album_id: list
-    total_followers: int
+    artist_name: str
+    albums: list
     genres: list
+    total_followers: int
     popularity: int
-    external_urls: str
+    external_url: str
 
 
 class SpotifyApi:
@@ -230,27 +232,28 @@ class SpotifyApi:
             response = r.json()
             name = response["name"]
             track_id = response["id"]
-            # album_id = response["album"]["id"]
             duration_ms = int(response["duration_ms"])
             explicit = response["explicit"]
             popularity = int(response["popularity"])
             track_number = int(response["track_number"])
             external_urls = response["external_urls"]["spotify"]
+            release_date = response["release_date"]
 
             track = Tracks(
-                name=name,
+                track_name=name,
                 rs_rank=self.rs_rank,
                 track_id=track_id,
-                artists=self.artists,
+                artist_ids=self.artists,
                 album_id=self.album_id,
                 duration_ms=duration_ms,
-                explicit=explicit,
+                is_explicit=explicit,
                 popularity=popularity,
-                track_number=track_number,
-                external_urls=external_urls,
+                track_number_on_album=track_number,
+                external_url=external_urls,
+                release_date=release_date,
             )
-            # return track
             return asdict(track)
+            # return track
 
     def fetch_get_artist_api(self):
         # Store API response in the respective dataclass
