@@ -2,7 +2,7 @@ import json
 import os
 from datetime import datetime
 
-from helpers import Authenticator, SpotifyApi
+from api.api_processors import Authenticator, SpotifyApiProcessor
 
 
 def write_insert_table():

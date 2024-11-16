@@ -4,6 +4,7 @@ import os
 import pathlib
 import secrets
 import string
+import time
 from dataclasses import asdict, astuple, dataclass, fields
 from datetime import datetime, timedelta
 
@@ -177,7 +178,7 @@ class Albums:
     total_tracks: int
     label: str
     external_url: str
-    release_date: str
+    release_year: int
     album_image: str
     artist_id: str
 
@@ -193,7 +194,10 @@ class Artists:
     external_url: str
 
 
-def save_json(data, file_path):
+def save_data_to_json(data, file_path):
+    """
+    Function to save any scraped API {data} into a given JSON {file_path}.
+    """
     with open(file_path, "r+") as jsonFile:
         jsonFile.seek(0)
         json.dump(
@@ -206,7 +210,7 @@ def save_json(data, file_path):
         jsonFile.truncate()
 
 
-class SpotifyApi:
+class SpotifyApiProcessor:
     def __init__(self, raw_title, search_type, rs_rank, headers, folder_path):
         self.raw_title = raw_title
         self.search_type = search_type
@@ -217,14 +221,12 @@ class SpotifyApi:
         self.track_id = None
         self.album_id = None
         self.artists = None
-        self.name = None
+        # self.name = None
 
     def fetch_search_api(self):
         limit = 5
         url = f"https://api.spotify.com/v1/search?q={self.raw_title}&type={self.search_type}&market=GB&limit={limit}"
         r = requests.get(url=url, headers=self.headers)
-
-        # We need to check the returned list against the query, because we may not be looking at the 0th item,
 
         if r.status_code == 200:
             response = r.json()
@@ -233,7 +235,7 @@ class SpotifyApi:
             self.artists = [
                 artist["id"] for artist in response["tracks"]["items"][0]["artists"]
             ]
-            self.name = response["tracks"]["items"][0]["name"]
+            # self.name = response["tracks"]["items"][0]["name"]
             return True
         else:
             return False
@@ -297,15 +299,48 @@ class SpotifyApi:
             # return artist
 
     def fetch_get_album_api(self):
-        # Store API response in the respective dataclass
-        return print("Api called!")
+        url = f"https://api.spotify.com/v1/albums/{self.album_id}?market=GB"
+        print(f"Fetching: {url}")
+        r = requests.get(url=url, headers=self.headers)
+
+        if r.status_code == 200:
+            response = r.json()
+            album_name = response["name"]
+            rs_rank = ""
+            genres = response["genres"]
+            popularity = response["popularity"]
+            total_tracks = response["total_tracks"]
+            label = response["label"]
+            external_url = response["external_urls"]["spotify"]
+            release_year = int(response["release_date"][:4])
+            album_image = response["images"][0]["url"]
+            artist_id = response["artists"][0]["id"]
+
+            album = Albums(
+                album_id=self.album_id,
+                album_name=album_name,
+                rs_rank=rs_rank,
+                genres=genres,
+                popularity=popularity,
+                total_tracks=total_tracks,
+                label=label,
+                external_url=external_url,
+                release_year=release_year,
+                album_image=album_image,
+                artist_id=artist_id,
+            )
+
+            return asdict(album)
+            # return artist
 
     def all_contributed_artists(self):
-        # Load JSON to get already saved artist list.
-        # Check if Artist is already saved or not.
-        # If Yes, stop, we already have the data.
-        # If No, we need to call the Get Artist API.
-        # Then save the data to JSON.
+        """
+        Load JSON to get already saved artist list.
+        Check if Artist is already saved or not.
+        If Yes, stop, we already have the data.
+        If No, we need to call the Get Artist API.
+        Then save the data to JSON.
+        """
         file_name = "artists.json"
         file_path = os.path.join(self.folder_path, file_name)
 
@@ -318,22 +353,26 @@ class SpotifyApi:
         for artist in self.artists:
             if artist not in artists_saved.keys():
                 print(f"New artist: {artist}")
-                s_artist = SpotifyApi.fetch_get_artist_api(self, artist)
+                s_artist = SpotifyApiProcessor.fetch_get_artist_api(self, artist)
                 artists_saved[s_artist["artists_id"]] = s_artist
-                save_json(data=artists_saved, file_path=file_path)
+                save_data_to_json(data=artists_saved, file_path=file_path)
                 print(f"Saving data to {file_path}...")
 
 
 def main(folder_path):
     file_name = "rolling_stones_top_500_songs.json"
     scraped_data = json.load(open(os.path.join(folder_path, file_name)))
-    spotify_data = list()
+    spotify_tracks_data = list()
+    spotify_albums_data = list()
     counter = 0
     while counter < len(scraped_data):
+        # Sleeping for 1 sec to ease up on API calls.
+        time.sleep(1)
+
         rank, title = scraped_data[counter]["rank"], scraped_data[counter]["title"]
         print(f"#{rank} - {title}")
 
-        s = SpotifyApi(
+        s = SpotifyApiProcessor(
             raw_title=title,
             rs_rank=rank,
             search_type="track",
@@ -343,15 +382,23 @@ def main(folder_path):
 
         s.fetch_search_api()
         track = s.fetch_get_track_api()
+        album = s.fetch_get_album_api()
         s.all_contributed_artists()
-        spotify_data.append(track)
+        spotify_tracks_data.append(track)
+        spotify_albums_data.append(album)
 
         # Save data to JSON after every 25 API calls.
         if counter % 25 == 0 or counter == 499:
             # Save data to JSON.
-            file_path = os.path.join(folder_path, "spotify_top_500_songs.json")
-            print(f"Saving data to {file_path}...")
-            save_json(data=spotify_data, file_path=file_path)
+            print(f"Saving data to {folder_path}...")
+            save_data_to_json(
+                data=spotify_tracks_data,
+                file_path=os.path.join(folder_path, "spotify_top_500_songs.json"),
+            )
+            save_data_to_json(
+                data=spotify_albums_data,
+                file_path=os.path.join(folder_path, "albums.json"),
+            )
 
         counter += 1
 
