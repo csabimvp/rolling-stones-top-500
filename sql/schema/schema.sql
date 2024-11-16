@@ -16,7 +16,8 @@ CREATE TABLE
         popularity NUMERIC,
         duration_ms NUMERIC,
         track_number_on_album NUMERIC,
-        external_url VARCHAR
+        external_url VARCHAR,
+        release_year INTEGER
         -- album_id VARCHAR REFERENCES rstop500.albums
         -- artist_id VARCHAR ARRAY REFERENCES rstop500.artists,
     );
@@ -25,7 +26,7 @@ CREATE TABLE
     IF NOT EXISTS rstop500.artists (
         artist_id VARCHAR PRIMARY KEY,
         artist_name VARCHAR,
-        albums VARCHAR ARRAY,
+        -- albums VARCHAR ARRAY,
         genres VARCHAR ARRAY,
         total_followers NUMERIC,
         popularity NUMERIC,
