@@ -180,7 +180,7 @@ class Albums:
     external_url: str
     release_year: int
     album_image: str
-    artist_id: str
+    artist_ids: list
 
 
 @dataclass
@@ -234,7 +234,7 @@ class SpotifyApiProcessor:
             self.album_id = response["tracks"]["items"][0]["album"]["id"]
             self.artists = [
                 artist["id"] for artist in response["tracks"]["items"][0]["artists"]
-            ].sort()
+            ]
             # self.name = response["tracks"]["items"][0]["name"]
             return True
         else:
@@ -315,7 +315,7 @@ class SpotifyApiProcessor:
             external_url = response["external_urls"]["spotify"]
             release_year = int(response["release_date"][:4])
             album_image = response["images"][0]["url"]
-            artist_id = response["artists"][0]["id"]
+            artist_ids = [artist["id"] for artist in response["artists"]]
 
             album = Albums(
                 album_id=self.album_id,
@@ -328,7 +328,7 @@ class SpotifyApiProcessor:
                 external_url=external_url,
                 release_year=release_year,
                 album_image=album_image,
-                artist_id=artist_id,
+                artist_ids=artist_ids,
             )
 
             return asdict(album)
@@ -351,6 +351,7 @@ class SpotifyApiProcessor:
             if e.__class__.__name__ == "JSONDecodeError":
                 artists_saved = dict()
 
+        print(self.artists)
         for artist in self.artists:
             if artist not in artists_saved.keys():
                 print(f"New artist: {artist}")
@@ -362,7 +363,7 @@ class SpotifyApiProcessor:
                 artist_albums = artists_saved[artist]["albums"]
                 if self.album_id not in artist_albums:
                     print(f"New album {self.album_id} for artist: {artist}")
-                    artist_albums.append(self.album_id).sort()
+                    artist_albums.append(self.album_id)
                     save_data_to_json(data=artists_saved, file_path=file_path)
                     print(f"Saving data to {file_path}...")
 
