@@ -98,7 +98,7 @@ class Authenticator:
         # Saving to database.
         self.saveJson()
 
-    def isTokenExpired(self):
+    def isTokenExpired(self) -> bool:
         expiryDate = datetime.strptime(self.keys["EXPIRY_DATE"], "%Y-%m-%d %H:%M:%S")
         if expiryDate < self.today:
             return True
@@ -156,7 +156,7 @@ class SearchItem:
 
 @dataclass
 class ParentClass:
-    def write_sql_syntax(self):
+    def write_sql_syntax(self) -> str:
         sql_syntax = tuple(
             [
                 (
@@ -211,7 +211,7 @@ class Artists(ParentClass):
     external_url: str
 
 
-def save_data_to_json(data, file_path):
+def save_data_to_json(data: list, file_path: str):
     """
     Function to save any scraped API {data} into a given JSON {file_path}.
     """
@@ -252,12 +252,8 @@ class SpotifyApiProcessor:
             self.artists = [
                 artist["id"] for artist in response["tracks"]["items"][0]["artists"]
             ]
-            # self.name = response["tracks"]["items"][0]["name"]
-            return True
-        else:
-            return False
 
-    def fetch_get_track_api(self):
+    def fetch_get_track_api(self) -> Tracks:
         url = f"https://api.spotify.com/v1/tracks/{self.track_id}?market=GB"
         print(f"Fetching: {url}")
         r = requests.get(url=url, headers=self.headers)
@@ -289,7 +285,7 @@ class SpotifyApiProcessor:
             return asdict(track)
             # return track
 
-    def fetch_get_artist_api(self, artist):
+    def fetch_get_artist_api(self, artist: str) -> Artists:
         url = f"https://api.spotify.com/v1/artists/{artist}"
         print(f"Fetching: {url}")
         r = requests.get(url=url, headers=self.headers)
@@ -316,7 +312,7 @@ class SpotifyApiProcessor:
             return asdict(artist)
             # return artist
 
-    def fetch_get_album_api(self):
+    def fetch_get_album_api(self) -> Albums:
         url = f"https://api.spotify.com/v1/albums/{self.album_id}?market=GB"
         print(f"Fetching: {url}")
         r = requests.get(url=url, headers=self.headers)

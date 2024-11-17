@@ -14,10 +14,12 @@ class MainProcessor:
     artists: Dict = {}
 
     # Need to write data to SQL files for Inserts
-    # Do we want csv/JSON as well?
+    # need a function to write data to .csv
 
 
-def main_processor(rolling_stones_scraped_data, folder_path):
+def main_processor(
+    rolling_stones_scraped_data: list, folder_path: str
+) -> MainProcessor:
     """
     1) Authenticate to Spotify API
     2) Loop trough Rolling Stones Top 500 dataset and Store Spotify API responses in MainProcessor Object.
@@ -71,6 +73,8 @@ def main_processor(rolling_stones_scraped_data, folder_path):
                 if sap.album_id not in artist_albums:
                     print(f"New album {sap.album_id} for artist: {artist}")
                     artist_albums.append(sap.album_id)
+
+        counter += 1
 
     return MP
 
