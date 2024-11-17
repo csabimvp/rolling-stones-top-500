@@ -42,11 +42,10 @@ CREATE TABLE
         popularity NUMERIC,
         total_tracks NUMERIC,
         label VARCHAR,
-        release_date DATE,
+        release_year DATE,
         album_image VARCHAR,
         external_url VARCHAR,
         artist_ids VARCHAR ARRAY
-        -- artist_id VARCHAR,
         -- track_id VARCHAR REFERENCES rstop500.tracks,
     );
 

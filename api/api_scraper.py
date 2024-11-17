@@ -1,53 +1,87 @@
-import os
+import time
 from dataclasses import dataclass
 from datetime import datetime
-from typing import List
+from typing import Dict, List
 
 from api.api_processors import Authenticator, SpotifyApiProcessor
 
 
 # Dataclass to store main datasets.
 @dataclass
-class AlbumsAndArtists:
-    artist_id: str
-    albums: List = None
+class MainProcessor:
+    albums: List = []
+    tracks: List = []
+    artists: Dict = {}
+
+    # Need to write data to SQL files for Inserts
+    # Do we want csv/JSON as well?
 
 
-def write_insert_table():
+def main_processor(rolling_stones_scraped_data, folder_path):
     """
-    Function to write INSERT INTO TABLE (columns) (values)
+    1) Authenticate to Spotify API
+    2) Loop trough Rolling Stones Top 500 dataset and Store Spotify API responses in MainProcessor Object.
     """
-    pass
-
-
-def main():
-    """
-    Loop trough Rolling Stones Top 500 raw data.
-        1) Fetch Spotify API endpoints
-            - Search
-            - Get Track
-            - Get Albums
-            - Get Artists
-
-        2) Somehow track Albums with Artists an append the respective data structures.
-            This is handled on the Processor level
-        3) Save data to SQL and JSON
-    """
-    pass
-
-
-if __name__ == "__main__":
-    start = datetime.now()
 
     # Authenticate
     authenticator = Authenticator("SPOTIFY")
     if authenticator.isTokenExpired():
         authenticator.refreshToken()
 
-    # # Admin
+    # Main Variables
+    MP = MainProcessor()
+    headers = authenticator.getHeaders()
+    counter = 0
 
-    # Calling Spotify API
-    main()
+    # Looping trough the Rolling Stones dataset...
+    while counter < len(rolling_stones_scraped_data):
+        # Sleeping for 1 sec to ease up on API calls.
+        time.sleep(1)
+
+        # Visuals for Print Statement:
+        rank, title = (
+            rolling_stones_scraped_data[counter]["rank"],
+            rolling_stones_scraped_data[counter]["title"],
+        )
+        print(f"#{rank} - {title}")
+
+        # Initiating Spotify API Processor object.
+        sap = SpotifyApiProcessor(
+            raw_title=title,
+            rs_rank=rank,
+            search_type="track",
+            headers=headers,
+            folder_path=folder_path,
+        )
+
+        # Fetching Spotify API endpoints and storing data in Main Processor Object.
+        sap.fetch_search_api()
+        track = sap.fetch_get_track_api()
+        album = sap.fetch_get_album_api()
+        MP.tracks.append(track)
+        MP.albums.append(album)
+
+        for artist in sap.artists:
+            if artist not in MP.artists.keys():
+                print(f"New artist: {artist}")
+                s_artist = SpotifyApiProcessor.fetch_get_artist_api(sap, artist)
+                MP.artists[s_artist["artists_id"]] = s_artist
+            else:
+                artist_albums = MP.artists[artist]["albums"]
+                if sap.album_id not in artist_albums:
+                    print(f"New album {sap.album_id} for artist: {artist}")
+                    artist_albums.append(sap.album_id)
+
+    return MP
+
+
+if __name__ == "__main__":
+    start = datetime.now()
+
+    # Admin
+    # load json file here and assign to main.
+
+    # Main Data Processing
 
     finished = datetime.now()
     print(f"Script finished in: {finished - start}")

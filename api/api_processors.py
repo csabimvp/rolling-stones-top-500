@@ -5,12 +5,13 @@ import pathlib
 import secrets
 import string
 import time
-from dataclasses import asdict, astuple, dataclass, fields
+from dataclasses import asdict, dataclass, fields
 from datetime import datetime, timedelta
 
 import requests
 
 
+# Movie the Authenticator class to a seperate authenticator.py file once the Main Program is functioning.
 class Authenticator:
     def loadJson(path=None, account=None):
         jsonFile = json.load(open(path, "r"))
@@ -154,7 +155,23 @@ class SearchItem:
 
 
 @dataclass
-class Tracks:
+class ParentClass:
+    def write_sql_syntax(self):
+        sql_syntax = tuple(
+            [
+                (
+                    f"ARRAY {getattr(self, field.name)}"
+                    if field.type is list
+                    else getattr(self, field.name)
+                )
+                for field in fields(self)
+            ]
+        )
+        return str(sql_syntax).replace('"', "")
+
+
+@dataclass
+class Tracks(ParentClass):
     track_id: str
     track_name: str
     artist_ids: list
@@ -169,7 +186,7 @@ class Tracks:
 
 
 @dataclass
-class Albums:
+class Albums(ParentClass):
     album_id: str
     album_name: str
     rs_rank: int
@@ -177,14 +194,14 @@ class Albums:
     popularity: int
     total_tracks: int
     label: str
-    external_url: str
     release_year: int
     album_image: str
+    external_url: str
     artist_ids: list
 
 
 @dataclass
-class Artists:
+class Artists(ParentClass):
     artists_id: str
     artist_name: str
     albums: list
@@ -334,6 +351,7 @@ class SpotifyApiProcessor:
             return asdict(album)
             # return artist
 
+    # Remove this once the Main Program is functioning.
     def all_contributed_artists(self):
         """
         Load JSON to get already saved artist list.
@@ -368,6 +386,7 @@ class SpotifyApiProcessor:
                     print(f"Saving data to {file_path}...")
 
 
+# Remove this once the Main Program is functioning.
 def main(folder_path):
     file_name = "rolling_stones_top_500_songs.json"
     scraped_data = json.load(open(os.path.join(folder_path, file_name)))
