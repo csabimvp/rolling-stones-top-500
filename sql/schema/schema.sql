@@ -26,7 +26,7 @@ CREATE TABLE
     IF NOT EXISTS rstop500.artists (
         artist_id VARCHAR PRIMARY KEY,
         artist_name VARCHAR,
-        -- albums VARCHAR ARRAY,
+        albums VARCHAR ARRAY,
         genres VARCHAR ARRAY,
         total_followers NUMERIC,
         popularity NUMERIC,
@@ -44,16 +44,16 @@ CREATE TABLE
         label VARCHAR,
         release_date DATE,
         album_image VARCHAR,
-        external_url VARCHAR
+        external_url VARCHAR,
+        artist_ids VARCHAR ARRAY
         -- artist_id VARCHAR,
         -- track_id VARCHAR REFERENCES rstop500.tracks,
     );
 
 ALTER TABLE rstop500.tracks ADD album_id VARCHAR REFERENCES rstop500.albums;
 
-ALTER TABLE rstop500.albums ADD artist_id VARCHAR REFERENCES rstop500.artists;
-
 ALTER TABLE rstop500.albums ADD track_id VARCHAR REFERENCES rstop500.tracks;
 
+-- ALTER TABLE rstop500.albums ADD artist_id VARCHAR REFERENCES rstop500.artists;
 -- \q
 -- exit

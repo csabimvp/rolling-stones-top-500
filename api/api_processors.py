@@ -187,7 +187,7 @@ class Albums:
 class Artists:
     artists_id: str
     artist_name: str
-    # albums: list
+    albums: list
     genres: list
     total_followers: int
     popularity: int
@@ -234,7 +234,7 @@ class SpotifyApiProcessor:
             self.album_id = response["tracks"]["items"][0]["album"]["id"]
             self.artists = [
                 artist["id"] for artist in response["tracks"]["items"][0]["artists"]
-            ]
+            ].sort()
             # self.name = response["tracks"]["items"][0]["name"]
             return True
         else:
@@ -289,6 +289,7 @@ class SpotifyApiProcessor:
             artist = Artists(
                 artists_id=artists_id,
                 artist_name=artist_name,
+                albums=[self.album_id],
                 genres=genres,
                 total_followers=total_followers,
                 popularity=popularity,
@@ -337,8 +338,8 @@ class SpotifyApiProcessor:
         """
         Load JSON to get already saved artist list.
         Check if Artist is already saved or not.
-        If Yes, stop, we already have the data.
-        If No, we need to call the Get Artist API.
+        - If Yes, check if the album is already added to the artist's album list or not.
+        - If No, we need to call the Get Artist API and add the Artist to the already saved ones.
         Then save the data to JSON.
         """
         file_name = "artists.json"
@@ -357,6 +358,13 @@ class SpotifyApiProcessor:
                 artists_saved[s_artist["artists_id"]] = s_artist
                 save_data_to_json(data=artists_saved, file_path=file_path)
                 print(f"Saving data to {file_path}...")
+            else:
+                artist_albums = artists_saved[artist]["albums"]
+                if self.album_id not in artist_albums:
+                    print(f"New album {self.album_id} for artist: {artist}")
+                    artist_albums.append(self.album_id).sort()
+                    save_data_to_json(data=artists_saved, file_path=file_path)
+                    print(f"Saving data to {file_path}...")
 
 
 def main(folder_path):

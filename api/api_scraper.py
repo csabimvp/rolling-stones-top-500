@@ -1,7 +1,16 @@
 import os
+from dataclasses import dataclass
 from datetime import datetime
+from typing import List
 
 from api.api_processors import Authenticator, SpotifyApiProcessor
+
+
+# Dataclass to store main datasets.
+@dataclass
+class AlbumsAndArtists:
+    artist_id: str
+    albums: List = None
 
 
 def write_insert_table():
@@ -17,7 +26,12 @@ def main():
         1) Fetch Spotify API endpoints
             - Search
             - Get Track
-        2) Save data to SQL and JSON
+            - Get Albums
+            - Get Artists
+
+        2) Somehow track Albums with Artists an append the respective data structures.
+            This is handled on the Processor level
+        3) Save data to SQL and JSON
     """
     pass
 
