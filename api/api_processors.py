@@ -184,6 +184,13 @@ class Tracks(ParentClass):
     release_year: int
     album_id: str
 
+    def __eq__(self, other):
+        if isinstance(other, Tracks):
+            if other.track_id == self.track_id:
+                return True
+            else:
+                return False
+
 
 @dataclass
 class Albums(ParentClass):
@@ -199,6 +206,13 @@ class Albums(ParentClass):
     external_url: str
     artist_ids: list
 
+    def __eq__(self, other):
+        if isinstance(other, Albums):
+            if other.album_id == self.album_id:
+                return True
+            else:
+                return False
+
 
 @dataclass
 class Artists(ParentClass):
@@ -209,6 +223,13 @@ class Artists(ParentClass):
     total_followers: int
     popularity: int
     external_url: str
+
+    def __eq__(self, other):
+        if isinstance(other, Artists):
+            if other.artists_id == self.artists_id:
+                return True
+            else:
+                return False
 
 
 def save_data_to_json(data: list, file_path: str):
@@ -228,7 +249,10 @@ def save_data_to_json(data: list, file_path: str):
 
 
 class SpotifyApiProcessor:
-    def __init__(self, raw_title, search_type, rs_rank, headers, folder_path):
+    def __init__(
+        self, raw_artist, raw_title, search_type, rs_rank, headers, folder_path
+    ):
+        self.raw_artist = raw_artist
         self.raw_title = raw_title
         self.search_type = search_type
         self.rs_rank = rs_rank
@@ -242,12 +266,18 @@ class SpotifyApiProcessor:
 
     def fetch_search_api(self):
         limit = 5
-        url = f"https://api.spotify.com/v1/search?q={self.raw_title}&type={self.search_type}&market=GB&limit={limit}"
+        search_term = f"{self.raw_artist} {self.raw_title}"
+        url = f"https://api.spotify.com/v1/search?q={search_term}&type={self.search_type}&market=GB&limit={limit}"
         r = requests.get(url=url, headers=self.headers)
 
         if r.status_code == 200:
             response = r.json()
-            self.track_id = response["tracks"]["items"][0]["id"]
+
+            if self.search_type == "track":
+                self.track_id = response["tracks"]["items"][0]["id"]
+            else:
+                self.track_id = None
+
             self.album_id = response["tracks"]["items"][0]["album"]["id"]
             self.artists = [
                 artist["id"] for artist in response["tracks"]["items"][0]["artists"]
@@ -320,7 +350,10 @@ class SpotifyApiProcessor:
         if r.status_code == 200:
             response = r.json()
             album_name = response["name"]
-            rs_rank = ""
+            if self.search_type == "album":
+                rs_rank = self.rs_rank
+            else:
+                rs_rank = ""
             genres = response["genres"]
             popularity = response["popularity"]
             total_tracks = response["total_tracks"]
@@ -393,11 +426,16 @@ def main(folder_path):
         # Sleeping for 1 sec to ease up on API calls.
         time.sleep(1)
 
-        rank, title = scraped_data[counter]["rank"], scraped_data[counter]["title"]
-        print(f"#{rank} - {title}")
+        rank, raw_title, raw_artist = (
+            scraped_data[counter]["rank"],
+            scraped_data[counter]["title"],
+            scraped_data[counter]["artist"],
+        )
+        print(f"#{rank} - {raw_title} by {raw_artist}")
 
         s = SpotifyApiProcessor(
-            raw_title=title,
+            raw_artist=raw_artist,
+            raw_title=raw_title,
             rs_rank=rank,
             search_type="track",
             headers=authenticator.getHeaders(),
