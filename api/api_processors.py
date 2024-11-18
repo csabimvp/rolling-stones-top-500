@@ -184,12 +184,23 @@ class Tracks(ParentClass):
     release_year: int
     album_id: str
 
+    # Compare with Other Objects:
     def __eq__(self, other):
+        # If type is the same.
         if isinstance(other, Tracks):
             if other.track_id == self.track_id:
                 return True
             else:
                 return False
+        # If it's a string
+        elif isinstance(other, str):
+            if other == self.track_id:
+                return True
+            else:
+                return False
+        # Every other just in case.
+        else:
+            return False
 
 
 @dataclass
@@ -206,12 +217,23 @@ class Albums(ParentClass):
     external_url: str
     artist_ids: list
 
+    # Compare with Other Objects:
     def __eq__(self, other):
+        # If type is the same.
         if isinstance(other, Albums):
             if other.album_id == self.album_id:
                 return True
             else:
                 return False
+        # If it's a string
+        elif isinstance(other, str):
+            if other == self.album_id:
+                return True
+            else:
+                return False
+        # Every other just in case.
+        else:
+            return False
 
 
 @dataclass
@@ -224,12 +246,23 @@ class Artists(ParentClass):
     popularity: int
     external_url: str
 
+    # Compare with Other Objects:
     def __eq__(self, other):
+        # If type is the same.
         if isinstance(other, Artists):
             if other.artists_id == self.artists_id:
                 return True
             else:
                 return False
+        # If it's a string
+        elif isinstance(other, str):
+            if other == self.artists_id:
+                return True
+            else:
+                return False
+        # Every other just in case.
+        else:
+            return False
 
 
 def save_data_to_json(data: list, file_path: str):
