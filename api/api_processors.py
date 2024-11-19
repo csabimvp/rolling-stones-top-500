@@ -155,8 +155,8 @@ class SearchItem:
 
 
 @dataclass
-class ParentClass:
-    def write_sql_syntax(self) -> str:
+class DataProcessor:
+    def write_as_sql(self) -> str:
         sql_syntax = tuple(
             [
                 (
@@ -169,9 +169,15 @@ class ParentClass:
         )
         return str(sql_syntax).replace('"', "")
 
+    def write_as_dict(self) -> dict:
+        return asdict(self)
+
+    def get_field_names(self) -> list:
+        return [field.name for field in fields(self)]
+
 
 @dataclass
-class Tracks(ParentClass):
+class Tracks(DataProcessor):
     track_id: str
     track_name: str
     artist_ids: list
@@ -204,7 +210,7 @@ class Tracks(ParentClass):
 
 
 @dataclass
-class Albums(ParentClass):
+class Albums(DataProcessor):
     album_id: str
     album_name: str
     rs_rank: int
@@ -237,7 +243,7 @@ class Albums(ParentClass):
 
 
 @dataclass
-class Artists(ParentClass):
+class Artists(DataProcessor):
     artists_id: str
     artist_name: str
     albums: list
@@ -282,15 +288,13 @@ def save_data_to_json(data: list, file_path: str):
 
 
 class SpotifyApiProcessor:
-    def __init__(
-        self, raw_artist, raw_title, search_type, rs_rank, headers, folder_path
-    ):
+    def __init__(self, raw_artist, raw_title, search_type, rs_rank, headers):
         self.raw_artist = raw_artist
         self.raw_title = raw_title
         self.search_type = search_type
         self.rs_rank = rs_rank
         self.headers = headers
-        self.folder_path = folder_path
+        # self.folder_path = folder_path
         # Store API responses in data list
         self.track_id = None
         self.album_id = None
@@ -345,8 +349,8 @@ class SpotifyApiProcessor:
                 external_url=external_urls,
                 release_year=release_year,
             )
-            return asdict(track)
-            # return track
+
+            return track
 
     def fetch_get_artist_api(self, artist: str) -> Artists:
         url = f"https://api.spotify.com/v1/artists/{artist}"
@@ -372,8 +376,7 @@ class SpotifyApiProcessor:
                 external_url=external_url,
             )
 
-            return asdict(artist)
-            # return artist
+            return artist
 
     def fetch_get_album_api(self) -> Albums:
         url = f"https://api.spotify.com/v1/albums/{self.album_id}?market=GB"
@@ -410,8 +413,7 @@ class SpotifyApiProcessor:
                 artist_ids=artist_ids,
             )
 
-            return asdict(album)
-            # return artist
+            return album
 
     # Remove this once the Main Program is functioning.
     def all_contributed_artists(self):
