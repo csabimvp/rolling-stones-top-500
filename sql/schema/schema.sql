@@ -38,7 +38,7 @@ CREATE TABLE
         album_id VARCHAR PRIMARY KEY,
         album_name VARCHAR,
         rs_rank INTEGER,
-        genres VARCHAR ARRAY,
+        -- genres VARCHAR ARRAY,
         popularity NUMERIC,
         total_tracks NUMERIC,
         label VARCHAR,

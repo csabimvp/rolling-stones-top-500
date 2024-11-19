@@ -2,6 +2,7 @@
 *archive
 *.git
 /data/**/*.json
+/data/**/*.csv
 /assets/**/*.json
 *test
 *__pycache__
