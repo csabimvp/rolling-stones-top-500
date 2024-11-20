@@ -32,16 +32,17 @@ class MainDataProcessor:
                 writer.writerows(csv_data)
 
     def save_data_to_sql(self, sql_folder_path):
+        schema = "rstop500"
         for field in fields(self):
             file_name = os.path.join(sql_folder_path, f"{field.name}.sql")
-            baseSql = f"INSERT INTO {field.name} {str(tuple(key for key in getattr(self, field.name)[0].get_field_names())).replace("'", "")} VALUES"
+            baseSql = f"INSERT INTO {schema}.{field.name} {str(tuple(key for key in getattr(self, field.name)[0].get_field_names())).replace("'", "")} VALUES"
             sql_data = [item.write_as_sql() for item in getattr(self, field.name)]
 
             with open(file_name, "w", newline="") as sqlFile:
                 sqlFile.seek(0)
                 sqlFile.write(baseSql)
                 sqlFile.write("\n")
-                for i, row in enumerate(sql_data):
+                for i, row in enumerate(sql_data, start=1):
                     if i != len(sql_data):
                         sqlFile.write("{},\n".format(row))
                     else:
@@ -85,7 +86,6 @@ def main_processor(rolling_stones_scraped_data: list) -> MainDataProcessor:
             rs_rank=rank,
             search_type=search_type,
             headers=headers,
-            # folder_path=folder_path,
         )
 
         # Fetching Spotify API endpoints and storing data in Main Processor Object.

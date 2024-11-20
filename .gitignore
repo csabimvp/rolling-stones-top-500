@@ -6,3 +6,6 @@
 /assets/**/*.json
 *test
 *__pycache__
+/sql/albums.sql
+/sql/artists.sql
+/sql/tracks.sql

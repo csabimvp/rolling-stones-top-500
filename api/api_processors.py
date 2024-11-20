@@ -1,4 +1,3 @@
-import json
 from dataclasses import asdict, dataclass, fields
 from datetime import datetime
 
@@ -18,7 +17,7 @@ class DataProcessor:
         clean_list = []
         for field in fields(self):
             if field.type is list:
-                clean_list.append(f"ARRAY {getattr(self, field.name)}")
+                clean_list.append(f"ARRAY{getattr(self, field.name)}")
             elif field.type is str:
                 clean_list.append(getattr(self, field.name).replace("'", ""))
             else:
@@ -116,7 +115,7 @@ class Albums(DataProcessor):
 
 @dataclass
 class Artists(DataProcessor):
-    artists_id: str
+    artist_id: str
     artist_name: str
     albums: list
     genres: list
@@ -141,22 +140,6 @@ class Artists(DataProcessor):
         # Every other just in case.
         else:
             return False
-
-
-def save_data_to_json(data: list, file_path: str):
-    """
-    Function to save any scraped API {data} into a given JSON {file_path}.
-    """
-    with open(file_path, "r+") as jsonFile:
-        jsonFile.seek(0)
-        json.dump(
-            data,
-            jsonFile,
-            indent=4,
-            sort_keys=True,
-            ensure_ascii=False,
-        )
-        jsonFile.truncate()
 
 
 class SpotifyApiProcessor:
@@ -240,18 +223,19 @@ class SpotifyApiProcessor:
             exit()
         elif r.status_code == 200:
             response = r.json()
-            artists_id = response["id"]
+            artist_id = response["id"]
             artist_name = response["name"]
             genres = response["genres"]
+            cleaned_genres = [genre.replace("'", "") for genre in genres]
             total_followers = response["followers"]["total"]
             popularity = response["popularity"]
             external_url = response["external_urls"]["spotify"]
 
             artist = Artists(
-                artists_id=artists_id,
+                artist_id=artist_id,
                 artist_name=artist_name,
                 albums=[self.album_id],
-                genres=genres,
+                genres=cleaned_genres,
                 total_followers=total_followers,
                 popularity=popularity,
                 external_url=external_url,
@@ -273,8 +257,7 @@ class SpotifyApiProcessor:
             if self.search_type == "album":
                 rs_rank = self.rs_rank
             else:
-                rs_rank = ""
-            # genres = response["genres"]
+                rs_rank = "NULL"
             popularity = response["popularity"]
             total_tracks = response["total_tracks"]
             label = response["label"]
@@ -287,7 +270,6 @@ class SpotifyApiProcessor:
                 album_id=self.album_id,
                 album_name=album_name,
                 rs_rank=rs_rank,
-                # genres=genres,
                 popularity=popularity,
                 total_tracks=total_tracks,
                 label=label,
@@ -302,11 +284,6 @@ class SpotifyApiProcessor:
 
 if __name__ == "__main__":
     start = datetime.now()
-
-    # # Authenticate
-    # authenticator = Authenticator("SPOTIFY")
-    # if authenticator.isTokenExpired():
-    #     authenticator.refreshToken()
 
     finished = datetime.now()
     print(f"Script finished in: {finished - start}")

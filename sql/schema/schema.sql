@@ -19,7 +19,6 @@ CREATE TABLE
         external_url VARCHAR,
         release_year INTEGER
         -- album_id VARCHAR REFERENCES rstop500.albums
-        -- artist_id VARCHAR ARRAY REFERENCES rstop500.artists,
     );
 
 CREATE TABLE
@@ -38,11 +37,10 @@ CREATE TABLE
         album_id VARCHAR PRIMARY KEY,
         album_name VARCHAR,
         rs_rank INTEGER,
-        -- genres VARCHAR ARRAY,
         popularity NUMERIC,
         total_tracks NUMERIC,
         label VARCHAR,
-        release_year DATE,
+        release_year INTEGER,
         album_image VARCHAR,
         external_url VARCHAR,
         artist_ids VARCHAR ARRAY
@@ -51,8 +49,7 @@ CREATE TABLE
 
 ALTER TABLE rstop500.tracks ADD album_id VARCHAR REFERENCES rstop500.albums;
 
-ALTER TABLE rstop500.albums ADD track_id VARCHAR REFERENCES rstop500.tracks;
-
+-- ALTER TABLE rstop500.albums ADD track_id VARCHAR REFERENCES rstop500.tracks;
 -- ALTER TABLE rstop500.albums ADD artist_id VARCHAR REFERENCES rstop500.artists;
 -- \q
 -- exit
