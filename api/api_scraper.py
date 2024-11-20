@@ -94,7 +94,6 @@ def main_processor(rolling_stones_scraped_data: list) -> MainDataProcessor:
         # Search Type Track:
         if search_type == "track":
             track = sap.fetch_get_track_api()
-            print(track)
             MDP.tracks.append(track)
 
         if sap.album_id not in MDP.albums:

@@ -15,16 +15,16 @@ class SearchItem:
 @dataclass
 class DataProcessor:
     def write_as_sql(self) -> str:
-        sql_syntax = tuple(
-            [
-                (
-                    f"ARRAY {getattr(self, field.name)}"
-                    if field.type is list
-                    else getattr(self, field.name)
-                )
-                for field in fields(self)
-            ]
-        )
+        clean_list = []
+        for field in fields(self):
+            if field.type is list:
+                clean_list.append(f"ARRAY {getattr(self, field.name)}")
+            elif field.type is str:
+                clean_list.append(getattr(self, field.name).replace("'", ""))
+            else:
+                clean_list.append(getattr(self, field.name))
+
+        sql_syntax = tuple(clean_list)
         return str(sql_syntax).replace('"', "")
 
     def write_as_dict(self) -> dict:
