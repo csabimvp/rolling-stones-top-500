@@ -1,15 +1,26 @@
-import asyncio
-import concurrent.futures
-import json
-import os
-import pathlib
 import re
-from dataclasses import asdict, dataclass, field
+from dataclasses import dataclass, field
 from typing import List
 
 from bs4 import BeautifulSoup, UnicodeDammit
 from selenium_driverless import webdriver
 from selenium_driverless.types.by import By
+
+
+@dataclass
+class ArticleData:
+    rank: int
+    artist: str
+    title: str
+    released_year: int
+    writers: str
+    description: str
+    type: str
+
+
+@dataclass
+class RollingStonesData:
+    articles: List[ArticleData] = field(default_factory=list)
 
 
 class RollingStonesScraper:
@@ -74,6 +85,7 @@ class RollingStonesScraper:
                 description=description,
                 type=type,
             )
+
             rolling_stones_data.articles.append(article)
 
         return rolling_stones_data
@@ -130,18 +142,4 @@ class RollingStonesScraper:
 
                 page_counter += 1
 
-
-@dataclass
-class ArticleData:
-    rank: int
-    artist: str
-    title: str
-    released_year: int
-    writers: str
-    description: str
-    type: str
-
-
-@dataclass
-class RollingStonesData:
-    articles: List[ArticleData] = field(default_factory=list)
+        return rolling_stones_data
