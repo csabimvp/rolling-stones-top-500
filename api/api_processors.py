@@ -37,26 +37,31 @@ class ApiSearchProcessor:
             similarity = [
                 compute_similarity(name, self.search_term) for name in returned_names
             ]
-            best_match_idx = returned_names.index(similarity.index(max(similarity)))
-            track_id = self.api_response["albums"]["items"][best_match_idx]["id"]
-            album_id = self.api_response["albums"]["items"][best_match_idx]["album"][
+            best_match_idx = similarity.index(max(similarity))
+            track_id = self.api_response["tracks"]["items"][best_match_idx]["id"]
+            album_id = self.api_response["tracks"]["items"][best_match_idx]["album"][
                 "id"
             ]
             artists = [
                 artist["id"]
-                for artist in self.api_response["albums"]["items"][best_match_idx][
+                for artist in self.api_response["tracks"]["items"][best_match_idx][
                     "artists"
                 ]
             ]
         # Search Term = "album"
         else:
-            returned_names = [
-                item["name"] for item in self.api_response["albums"]["items"]
-            ]
-            similarity = [
-                compute_similarity(name, self.search_term) for name in returned_names
-            ]
-            best_match_idx = returned_names.index(similarity.index(max(similarity)))
+            if len(self.api_response["albums"]["items"]) > 1:
+                returned_names = [
+                    item["name"] for item in self.api_response["albums"]["items"]
+                ]
+                similarity = [
+                    compute_similarity(name, self.search_term)
+                    for name in returned_names
+                ]
+                best_match_idx = similarity.index(max(similarity))
+            else:
+                best_match_idx = 0
+
             track_id = None
             album_id = self.api_response["albums"]["items"][best_match_idx]["id"]
             artists = [
@@ -188,13 +193,13 @@ class Artists(DataProcessor):
     def __eq__(self, other):
         # If type is the same.
         if isinstance(other, Artists):
-            if other.artists_id == self.artists_id:
+            if other.artist_id == self.artist_id:
                 return True
             else:
                 return False
         # If it's a string
         elif isinstance(other, str):
-            if other == self.artists_id:
+            if other == self.artist_id:
                 return True
             else:
                 return False
