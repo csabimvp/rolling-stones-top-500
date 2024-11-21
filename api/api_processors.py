@@ -115,7 +115,7 @@ class Tracks(DataProcessor):
     track_id: str
     track_name: str
     artist_ids: list
-    rs_rank: int
+    # rs_rank: int
     is_explicit: bool
     popularity: int
     duration_ms: int
@@ -148,7 +148,7 @@ class Tracks(DataProcessor):
 class Albums(DataProcessor):
     album_id: str
     album_name: str
-    rs_rank: int
+    # rs_rank: int
     # genres: list
     popularity: int
     total_tracks: int
@@ -182,7 +182,7 @@ class Albums(DataProcessor):
 class Artists(DataProcessor):
     artist_id: str
     artist_name: str
-    albums: list
+    # albums: list
     genres: list
     total_followers: int
     popularity: int
@@ -209,19 +209,15 @@ class Artists(DataProcessor):
 
 
 class SpotifyApiProcessor:
-    def __init__(self, raw_artist, raw_title, search_type, rs_rank, headers):
-        self.raw_artist = raw_artist
-        self.raw_title = raw_title
-        self.search_type = search_type
-        self.rs_rank = rs_rank
+    def __init__(self, items: list, data_type: str, headers: dict):
+        self.items = items
+        self.data_type = data_type
         self.headers = headers
-        self.track_id = None
-        self.album_id = None
-        self.artists = None
 
-    def fetch_get_track_api(self) -> Tracks:
-        url = f"https://api.spotify.com/v1/tracks/{self.track_id}?market=GB"
-        print(f"Fetching: {url}")
+    def fetch_get_track_api(self) -> list:
+        data = list()
+        track_ids = ",".join(self.items)
+        url = f"https://api.spotify.com/v1/tracks?market=GB&ids={track_ids}"
         r = requests.get(url=url, headers=self.headers)
 
         if r.status_code == 429:
@@ -229,36 +225,42 @@ class SpotifyApiProcessor:
             exit()
         elif r.status_code == 200:
             response = r.json()
-            name = response["name"]
-            track_id = response["id"]
-            duration_ms = int(response["duration_ms"])
-            explicit = response["explicit"]
-            popularity = int(response["popularity"])
-            track_number = int(response["track_number"])
-            external_urls = response["external_urls"]["spotify"]
-            release_year = int(response["album"]["release_date"][:4])
-            uri = response["uri"]
 
-            track = Tracks(
-                track_name=name,
-                rs_rank=self.rs_rank,
-                track_id=track_id,
-                artist_ids=self.artists,
-                album_id=self.album_id,
-                duration_ms=duration_ms,
-                is_explicit=explicit,
-                popularity=popularity,
-                track_number_on_album=track_number,
-                external_url=external_urls,
-                uri=uri,
-                release_year=release_year,
-            )
+            for item in response["tracks"]:
+                name = item["name"]
+                track_id = item["id"]
+                album_id = item["album"]["id"]
+                artist_ids = [artist["id"] for artist in item["artists"]]
+                duration_ms = int(item["duration_ms"])
+                explicit = item["explicit"]
+                popularity = int(item["popularity"])
+                track_number = int(item["track_number"])
+                external_urls = item["external_urls"]["spotify"]
+                release_year = int(item["album"]["release_date"][:4])
+                uri = item["uri"]
 
-            return track
+                track = Tracks(
+                    track_name=name,
+                    track_id=track_id,
+                    artist_ids=artist_ids,
+                    album_id=album_id,
+                    duration_ms=duration_ms,
+                    is_explicit=explicit,
+                    popularity=popularity,
+                    track_number_on_album=track_number,
+                    external_url=external_urls,
+                    uri=uri,
+                    release_year=release_year,
+                )
 
-    def fetch_get_artist_api(self, artist: str) -> Artists:
-        url = f"https://api.spotify.com/v1/artists/{artist}"
-        print(f"Fetching: {url}")
+                data.append(track)
+
+            return data
+
+    def fetch_get_artist_api(self) -> list:
+        data = list()
+        artist_ids = ",".join(self.items)
+        url = f"https://api.spotify.com/v1/artists?ids={artist_ids}"
         r = requests.get(url=url, headers=self.headers)
 
         if r.status_code == 429:
@@ -266,31 +268,34 @@ class SpotifyApiProcessor:
             exit()
         elif r.status_code == 200:
             response = r.json()
-            artist_id = response["id"]
-            artist_name = response["name"]
-            genres = response["genres"]
-            cleaned_genres = [genre.replace("'", "") for genre in genres]
-            total_followers = response["followers"]["total"]
-            popularity = response["popularity"]
-            external_url = response["external_urls"]["spotify"]
-            uri = response["uri"]
+            for item in response["artist"]:
+                artist_id = item["id"]
+                artist_name = item["name"]
+                genres = item["genres"]
+                cleaned_genres = [genre.replace("'", "") for genre in genres]
+                total_followers = item["followers"]["total"]
+                popularity = item["popularity"]
+                external_url = item["external_urls"]["spotify"]
+                uri = item["uri"]
 
-            artist = Artists(
-                artist_id=artist_id,
-                artist_name=artist_name,
-                albums=[self.album_id],
-                genres=cleaned_genres,
-                total_followers=total_followers,
-                popularity=popularity,
-                external_url=external_url,
-                uri=uri,
-            )
+                artist = Artists(
+                    artist_id=artist_id,
+                    artist_name=artist_name,
+                    genres=cleaned_genres,
+                    total_followers=total_followers,
+                    popularity=popularity,
+                    external_url=external_url,
+                    uri=uri,
+                )
 
-            return artist
+                data.append(artist)
 
-    def fetch_get_album_api(self) -> Albums:
-        url = f"https://api.spotify.com/v1/albums/{self.album_id}?market=GB"
-        print(f"Fetching: {url}")
+            return data
+
+    def fetch_get_album_api(self) -> list:
+        data = list()
+        album_ids = ",".join(self.items)
+        url = f"https://api.spotify.com/v1/albums?ids={album_ids}?market=GB"
         r = requests.get(url=url, headers=self.headers)
 
         if r.status_code == 429:
@@ -298,35 +303,34 @@ class SpotifyApiProcessor:
             exit()
         elif r.status_code == 200:
             response = r.json()
-            album_name = response["name"].replace(";", "")
-            if self.search_type == "album":
-                rs_rank = self.rs_rank
-            else:
-                rs_rank = "NULL"
-            popularity = response["popularity"]
-            total_tracks = response["total_tracks"]
-            label = response["label"]
-            external_url = response["external_urls"]["spotify"]
-            uri = response["uri"]
-            release_year = int(response["release_date"][:4])
-            album_image = response["images"][0]["url"]
-            artist_ids = [artist["id"] for artist in response["artists"]]
+            for item in response["albums"]:
+                album_id = item["id"]
+                album_name = item["name"].replace(";", "")
+                popularity = item["popularity"]
+                total_tracks = item["total_tracks"]
+                label = item["label"]
+                external_url = item["external_urls"]["spotify"]
+                uri = item["uri"]
+                release_year = int(item["release_date"][:4])
+                album_image = item["images"][0]["url"]
+                artist_ids = [artist["id"] for artist in item["artists"]]
 
-            album = Albums(
-                album_id=self.album_id,
-                album_name=album_name,
-                rs_rank=rs_rank,
-                popularity=popularity,
-                total_tracks=total_tracks,
-                label=label,
-                external_url=external_url,
-                uri=uri,
-                release_year=release_year,
-                album_image=album_image,
-                artist_ids=artist_ids,
-            )
+                album = Albums(
+                    album_id=album_id,
+                    album_name=album_name,
+                    popularity=popularity,
+                    total_tracks=total_tracks,
+                    label=label,
+                    external_url=external_url,
+                    uri=uri,
+                    release_year=release_year,
+                    album_image=album_image,
+                    artist_ids=artist_ids,
+                )
 
-            return album
+                data.append(album)
+
+            return data
 
 
 if __name__ == "__main__":

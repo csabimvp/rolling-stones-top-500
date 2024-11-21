@@ -91,7 +91,9 @@ class RollingStonesMasterData(MainDataProcessor):
     rs_master_data: List[RollingStonesData] = field(default_factory=list)
 
 
-def enirch_rolling_stones_data(rolling_stones_scraped_data: list):
+def enirch_rolling_stones_data(
+    rolling_stones_scraped_data: list,
+) -> RollingStonesMasterData:
     # Authenticate
     authenticator = Authenticator("SPOTIFY")
     if authenticator.isTokenExpired():
