@@ -91,6 +91,17 @@ class RollingStonesMasterData(MainDataProcessor):
     rs_master_data: List[RollingStonesData] = field(default_factory=list)
 
 
+# Dataclass to store Spotify API data.
+@dataclass
+class SpotifyData(MainDataProcessor):
+    tracks: List = field(default_factory=list)
+    albums: List = field(default_factory=list)
+    artists: List = field(default_factory=list)
+
+    # Method
+    # Needs to return SET to only parse unique items with the API
+
+
 def enirch_rolling_stones_data(
     rolling_stones_scraped_data: list,
 ) -> RollingStonesMasterData:
@@ -101,6 +112,7 @@ def enirch_rolling_stones_data(
 
     # Main Variables
     rolling_stones_master_data = RollingStonesMasterData()
+    spotify_data = SpotifyData()
     headers = authenticator.getHeaders()
     counter = 0
 
@@ -116,21 +128,13 @@ def enirch_rolling_stones_data(
             writers=rolling_stones_scraped_data[counter]["writers"],
         )
 
-        rs_data.get_search_results(headers=headers)
+        track_id, arlbum_id, artists = rs_data.get_search_results(headers=headers)
+        spotify_data.tracks.append(track_id)
+        spotify_data.albums.append(arlbum_id)
+        spotify_data.artists.extend(artists)
         rolling_stones_master_data.rs_master_data.append(rs_data)
 
     return rolling_stones_master_data
-
-
-# Dataclass to store Spotify API data.
-@dataclass
-class SpotifyData(MainDataProcessor):
-    tracks: List = field(default_factory=list)
-    albums: List = field(default_factory=list)
-    artists: List = field(default_factory=list)
-
-    # Method
-    # Needs to return SET to only parse unique items with the API
 
 
 def main_processor(rolling_stones_scraped_data: list) -> MainDataProcessor:

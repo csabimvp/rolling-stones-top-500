@@ -102,12 +102,14 @@ class RollingStonesData(ApiSearchProcessor, DataProcessor):
     data_type: str
     writers: str
 
-    def get_search_results(self, headers):
+    def get_search_results(self, headers) -> tuple:
         print(f"#{self.rank} - {self.raw_title} by {self.raw_artist}")
         search_term = f"{self.raw_artist} {self.raw_title}".replace("’", "")
         self.track_id, self.album_id, self.artists = self.fetch_search_api(
             search_term=search_term, search_type=self.data_type, headers=headers
         )
+
+        return (self.track_id, self.album_id, self.artists)
 
 
 @dataclass
