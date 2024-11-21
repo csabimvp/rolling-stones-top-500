@@ -7,17 +7,43 @@ from dataclasses import dataclass, field, fields
 from datetime import datetime
 from typing import List
 
-from api_processors import SpotifyApiProcessor
+from api_processors import RollingStonesData, SpotifyApiProcessor
 from authenticator import Authenticator
 
+"""
+Step 1:
+- One function to loop trough master data
+- fetch search API and store IDs for all of them.
+- Save data as JSON, CSV and SQL
 
-# Dataclass to store main datasets.
-@dataclass
+Things we need:
+#1 Dataclass:
+- Store Rolling Stones Data
+- Fetch Search API
+- Clean Search Result
+- Store returned IDs
+
+#2 Dataclass:
+- Store all this from #1 in a MasterClass
+
+
+Step 2:
+- Batch query ALL IDs for tracks, artists and albums
+- Save data as CSV and SQL
+
+Things we need:
+#1 Dataclass:
+SpotifyApiProcessor
+    - input: list of IDs from Rolling Stones Dataclass
+    - batch query all tracks, artists and albums and store data in Tracks, Artist and Album dataclasses
+
+#2 Dataclass:
+MainDataProcessor
+    - Use SpotifyApiProcessor batch outputs to store data.
+"""
+
+
 class MainDataProcessor:
-    tracks: List = field(default_factory=list)
-    albums: List = field(default_factory=list)
-    artists: List = field(default_factory=list)
-
     def save_data_to_csv(self, csv_folder_path):
         for field in fields(self):
             file_name = os.path.join(csv_folder_path, f"{field.name}.csv")
@@ -48,8 +74,67 @@ class MainDataProcessor:
                     else:
                         sqlFile.write("{};".format(row))
 
+    def save_data_to_json(self, json_folder_path):
+        for field in fields(self):
+            file_name = os.path.join(json_folder_path, f"{field.name}.json")
+            json_data = [item.write_as_dict() for item in getattr(self, field.name)]
+
+            with open(file_name, "w") as jsonFile:
+                jsonFile.seek(0)
+                json.dump(json_data, jsonFile, indent=4, sort_keys=True)
+                jsonFile.truncate()
+
+
+# Dataclass to store Rolling Stones Master Data.
+@dataclass
+class RollingStonesMasterData(MainDataProcessor):
+    rs_master_data: List[RollingStonesData] = field(default_factory=list)
+
+
+def enirch_rolling_stones_data(rolling_stones_scraped_data: list):
+    # Authenticate
+    authenticator = Authenticator("SPOTIFY")
+    if authenticator.isTokenExpired():
+        authenticator.refreshToken()
+
+    # Main Variables
+    rolling_stones_master_data = RollingStonesMasterData()
+    headers = authenticator.getHeaders()
+    counter = 0
+
+    # Looping trough the Rolling Stones dataset...
+    while counter < len(rolling_stones_scraped_data):
+        rs_data = RollingStonesData(
+            raw_artist=rolling_stones_scraped_data[counter]["artist"],
+            description=rolling_stones_scraped_data[counter]["description"],
+            rank=rolling_stones_scraped_data[counter]["rank"],
+            released_year=rolling_stones_scraped_data[counter]["released_year"],
+            raw_title=rolling_stones_scraped_data[counter]["title"],
+            data_type=rolling_stones_scraped_data[counter]["type"],
+            writers=rolling_stones_scraped_data[counter]["writers"],
+        )
+
+        rs_data.get_search_results(headers=headers)
+        rolling_stones_master_data.rs_master_data.append(rs_data)
+
+    return rolling_stones_master_data
+
+
+# Dataclass to store Spotify API data.
+@dataclass
+class SpotifyData(MainDataProcessor):
+    tracks: List = field(default_factory=list)
+    albums: List = field(default_factory=list)
+    artists: List = field(default_factory=list)
+
+    # Method
+    # Needs to return SET to only parse unique items with the API
+
 
 def main_processor(rolling_stones_scraped_data: list) -> MainDataProcessor:
+
+    # Rewrite this to batch query...
+
     """
     1) Authenticate to Spotify API
     2) Loop trough Rolling Stones Top 500 dataset and Store Spotify API responses in MainDataProcessor Object.
@@ -61,7 +146,7 @@ def main_processor(rolling_stones_scraped_data: list) -> MainDataProcessor:
         authenticator.refreshToken()
 
     # Main Variables
-    MDP = MainDataProcessor()
+    MDP = SpotifyData()
     headers = authenticator.getHeaders()
     counter = 0
 

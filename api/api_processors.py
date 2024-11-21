@@ -6,17 +6,7 @@ import requests
 
 
 class ApiSearchProcessor:
-    def __init__(
-        self,
-        search_type: str = None,
-        search_term: str = None,
-        api_response: dict = None,
-    ):
-        self.search_type = search_type
-        self.search_term = search_term
-        self.api_response = api_response
-
-    def find_best_match(self) -> tuple:
+    def find_best_match(self, api_response: dict) -> tuple:
         """
         Finds best returned match for the "Search Term" within the "Names" in the returned list.
         """
@@ -31,42 +21,39 @@ class ApiSearchProcessor:
             return 1 - (diff_count / len(input_string))
 
         if self.search_type == "track":
-            returned_names = [
-                item["name"] for item in self.api_response["tracks"]["items"]
-            ]
+            returned_names = [item["name"] for item in api_response["tracks"]["items"]]
             similarity = [
                 compute_similarity(name, self.search_term) for name in returned_names
             ]
             best_match_idx = returned_names.index(similarity.index(max(similarity)))
-            track_id = self.api_response["albums"]["items"][best_match_idx]["id"]
-            album_id = self.api_response["albums"]["items"][best_match_idx]["album"][
-                "id"
-            ]
+            track_id = api_response["albums"]["items"][best_match_idx]["id"]
+            album_id = api_response["albums"]["items"][best_match_idx]["album"]["id"]
             artists = [
                 artist["id"]
-                for artist in self.api_response["albums"]["items"][best_match_idx][
-                    "artists"
-                ]
+                for artist in api_response["albums"]["items"][best_match_idx]["artists"]
             ]
         # Search Term = "album"
         else:
-            returned_names = [
-                item["name"] for item in self.api_response["albums"]["items"]
-            ]
+            returned_names = [item["name"] for item in api_response["albums"]["items"]]
             similarity = [
                 compute_similarity(name, self.search_term) for name in returned_names
             ]
             best_match_idx = returned_names.index(similarity.index(max(similarity)))
             track_id = None
-            album_id = self.api_response["albums"]["items"][best_match_idx]["id"]
+            album_id = api_response["albums"]["items"][best_match_idx]["id"]
             artists = [
                 artist["id"]
-                for artist in self.api_response["albums"]["items"][best_match_idx][
-                    "artists"
-                ]
+                for artist in api_response["albums"]["items"][best_match_idx]["artists"]
             ]
 
         return (track_id, album_id, artists)
+
+    def fetch_search_api(self, search_term, search_type, headers: dict) -> tuple:
+        limit = 3
+        url = f"https://api.spotify.com/v1/search?q={search_term}&type={search_type}&market=GB&limit={limit}"
+        r = requests.get(url=url, headers=headers)
+        if r.status_code == 200:
+            return self.find_best_match(api_response=r.json())
 
 
 @dataclass
@@ -103,6 +90,24 @@ class DataProcessor:
 
     def get_field_names(self) -> list:
         return [field.name for field in fields(self)]
+
+
+@dataclass
+class RollingStonesData(ApiSearchProcessor, DataProcessor):
+    raw_artist: str
+    description: str
+    rank: int
+    released_year: int
+    raw_title: str
+    data_type: str
+    writers: str
+
+    def get_search_results(self, headers):
+        print(f"#{self.rank} - {self.raw_title} by {self.raw_artist}")
+        search_term = f"{self.raw_artist} {self.raw_title}".replace("’", "")
+        self.track_id, self.album_id, self.artists = self.fetch_search_api(
+            search_term=search_term, search_type=self.data_type, headers=headers
+        )
 
 
 @dataclass
@@ -213,21 +218,6 @@ class SpotifyApiProcessor:
         self.track_id = None
         self.album_id = None
         self.artists = None
-
-    def fetch_search_api(self):
-        limit = 3
-        search_term = f"{self.raw_artist} {self.raw_title}".replace("’", "")
-        url = f"https://api.spotify.com/v1/search?q={search_term}&type={self.search_type}&market=GB&limit={limit}"
-        r = requests.get(url=url, headers=self.headers)
-
-        if r.status_code == 200:
-            response = r.json()
-            api_response = ApiSearchProcessor(
-                search_type=self.search_type,
-                search_term=search_term,
-                api_response=response,
-            )
-            self.track_id, self.album_id, self.artists = api_response.find_best_match()
 
     def fetch_get_track_api(self) -> Tracks:
         url = f"https://api.spotify.com/v1/tracks/{self.track_id}?market=GB"
