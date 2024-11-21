@@ -17,6 +17,7 @@ CREATE TABLE
         duration_ms NUMERIC,
         track_number_on_album NUMERIC,
         external_url VARCHAR,
+        uri VARCHAR,
         release_year INTEGER
         -- album_id VARCHAR REFERENCES rstop500.albums
     );
@@ -29,7 +30,8 @@ CREATE TABLE
         genres VARCHAR ARRAY,
         total_followers NUMERIC,
         popularity NUMERIC,
-        external_url VARCHAR
+        external_url VARCHAR,
+        uri VARCHAR
     );
 
 CREATE TABLE
@@ -43,6 +45,7 @@ CREATE TABLE
         release_year INTEGER,
         album_image VARCHAR,
         external_url VARCHAR,
+        uri VARCHAR,
         artist_ids VARCHAR ARRAY
         -- track_id VARCHAR REFERENCES rstop500.tracks,
     );

@@ -1,14 +1,72 @@
+import difflib
 from dataclasses import asdict, dataclass, fields
 from datetime import datetime
 
 import requests
 
 
-@dataclass
-class SearchItem:
-    track_id: str
-    album_id: str
-    artists: list
+class ApiSearchProcessor:
+    def __init__(
+        self,
+        search_type: str = None,
+        search_term: str = None,
+        api_response: dict = None,
+    ):
+        self.search_type = search_type
+        self.search_term = search_term
+        self.api_response = api_response
+
+    def find_best_match(self) -> tuple:
+        """
+        Finds best returned match for the "Search Term" within the "Names" in the returned list.
+        """
+
+        # Source for compute_similarity: https://www.geeksforgeeks.org/python-similarity-metrics-of-strings/
+        def compute_similarity(input_string, reference_string):
+            diff = difflib.ndiff(input_string, reference_string)
+            diff_count = 0
+            for line in diff:
+                if line.startswith("-"):
+                    diff_count += 1
+            return 1 - (diff_count / len(input_string))
+
+        if self.search_type == "track":
+            returned_names = [
+                item["name"] for item in self.api_response["tracks"]["items"]
+            ]
+            similarity = [
+                compute_similarity(name, self.search_term) for name in returned_names
+            ]
+            best_match_idx = returned_names.index(similarity.index(max(similarity)))
+            track_id = self.api_response["albums"]["items"][best_match_idx]["id"]
+            album_id = self.api_response["albums"]["items"][best_match_idx]["album"][
+                "id"
+            ]
+            artists = [
+                artist["id"]
+                for artist in self.api_response["albums"]["items"][best_match_idx][
+                    "artists"
+                ]
+            ]
+        # Search Term = "album"
+        else:
+            returned_names = [
+                item["name"] for item in self.api_response["albums"]["items"]
+            ]
+            similarity = [
+                compute_similarity(name, self.search_term) for name in returned_names
+            ]
+            best_match_idx = returned_names.index(similarity.index(max(similarity)))
+            track_id = None
+            album_id = self.api_response["albums"]["items"][best_match_idx]["id"]
+            artists = [
+                artist["id"]
+                for artist in self.api_response["albums"]["items"][best_match_idx][
+                    "artists"
+                ]
+            ]
+
+        return (track_id, album_id, artists)
 
 
 @dataclass
@@ -58,6 +116,7 @@ class Tracks(DataProcessor):
     duration_ms: int
     track_number_on_album: int
     external_url: str
+    uri: str
     release_year: int
     album_id: str
 
@@ -92,6 +151,7 @@ class Albums(DataProcessor):
     release_year: int
     album_image: str
     external_url: str
+    uri: str
     artist_ids: list
 
     # Compare with Other Objects:
@@ -122,6 +182,7 @@ class Artists(DataProcessor):
     total_followers: int
     popularity: int
     external_url: str
+    uri: str
 
     # Compare with Other Objects:
     def __eq__(self, other):
@@ -149,34 +210,24 @@ class SpotifyApiProcessor:
         self.search_type = search_type
         self.rs_rank = rs_rank
         self.headers = headers
-        # self.folder_path = folder_path
-        # Store API responses in data list
         self.track_id = None
         self.album_id = None
         self.artists = None
-        # self.name = None
 
     def fetch_search_api(self):
-        limit = 5
+        limit = 3
         search_term = f"{self.raw_artist} {self.raw_title}".replace("’", "")
         url = f"https://api.spotify.com/v1/search?q={search_term}&type={self.search_type}&market=GB&limit={limit}"
         r = requests.get(url=url, headers=self.headers)
 
         if r.status_code == 200:
             response = r.json()
-
-            if self.search_type == "track":
-                self.track_id = response["tracks"]["items"][0]["id"]
-                self.album_id = response["tracks"]["items"][0]["album"]["id"]
-                self.artists = [
-                    artist["id"] for artist in response["tracks"]["items"][0]["artists"]
-                ]
-            else:
-                # self.track_id = None
-                self.album_id = response["albums"]["items"][0]["id"]
-                self.artists = [
-                    artist["id"] for artist in response["albums"]["items"][0]["artists"]
-                ]
+            api_response = ApiSearchProcessor(
+                search_type=self.search_type,
+                search_term=search_term,
+                api_response=response,
+            )
+            self.track_id, self.album_id, self.artists = api_response.find_best_match()
 
     def fetch_get_track_api(self) -> Tracks:
         url = f"https://api.spotify.com/v1/tracks/{self.track_id}?market=GB"
@@ -196,6 +247,7 @@ class SpotifyApiProcessor:
             track_number = int(response["track_number"])
             external_urls = response["external_urls"]["spotify"]
             release_year = int(response["album"]["release_date"][:4])
+            uri = response["uri"]
 
             track = Tracks(
                 track_name=name,
@@ -208,6 +260,7 @@ class SpotifyApiProcessor:
                 popularity=popularity,
                 track_number_on_album=track_number,
                 external_url=external_urls,
+                uri=uri,
                 release_year=release_year,
             )
 
@@ -230,6 +283,7 @@ class SpotifyApiProcessor:
             total_followers = response["followers"]["total"]
             popularity = response["popularity"]
             external_url = response["external_urls"]["spotify"]
+            uri = response["uri"]
 
             artist = Artists(
                 artist_id=artist_id,
@@ -239,6 +293,7 @@ class SpotifyApiProcessor:
                 total_followers=total_followers,
                 popularity=popularity,
                 external_url=external_url,
+                uri=uri,
             )
 
             return artist
@@ -262,6 +317,7 @@ class SpotifyApiProcessor:
             total_tracks = response["total_tracks"]
             label = response["label"]
             external_url = response["external_urls"]["spotify"]
+            uri = response["uri"]
             release_year = int(response["release_date"][:4])
             album_image = response["images"][0]["url"]
             artist_ids = [artist["id"] for artist in response["artists"]]
@@ -274,6 +330,7 @@ class SpotifyApiProcessor:
                 total_tracks=total_tracks,
                 label=label,
                 external_url=external_url,
+                uri=uri,
                 release_year=release_year,
                 album_image=album_image,
                 artist_ids=artist_ids,
