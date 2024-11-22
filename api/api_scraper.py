@@ -128,7 +128,9 @@ def main(root_folder_path):
     rolling_stones_scraped_data_path = os.path.join(
         data_folder_path, "rolling_stones_master_data.json"
     )
-    rolling_stones_scraped_data = json.load(open(rolling_stones_scraped_data_path))
+    rolling_stones_scraped_data = json.load(
+        open(rolling_stones_scraped_data_path, encoding="utf8")
+    )
 
     # Main Data Processing
     main_data_processor = main_processor(
@@ -144,6 +146,7 @@ def main(root_folder_path):
 if __name__ == "__main__":
     start = datetime.now()
     root_folder_path = pathlib.Path(__file__).parent.parent.resolve()
+    print(root_folder_path)
 
     main(root_folder_path=root_folder_path)
 
