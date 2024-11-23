@@ -1,66 +1,13 @@
-import csv
+# import csv
 import json
 import os
 import pathlib
-from dataclasses import asdict, dataclass, field, fields
+
+# from dataclasses import asdict, dataclass, field, fields
 from datetime import datetime
 
 from authenticator import Authenticator
-from processors import RollingStonesItem, SearchResults
-
-
-class MainDataProcessor:
-    def save_data_to_csv(self, csv_file_path, csv_headers, csv_data):
-        with open(csv_file_path, "w", newline="") as csvfile:
-            writer = csv.DictWriter(csvfile, fieldnames=csv_headers)
-            writer.writeheader()
-            writer.writerows(csv_data)
-
-    # def save_data_to_csv(self, csv_folder_path):
-    #     for field in fields(self):
-    #         file_name = os.path.join(csv_folder_path, f"{field.name}.csv")
-    #         csv_headers = [
-    #             key for key in getattr(self, field.name)[0].get_field_names()
-    #         ]
-    #         csv_data = [item.write_to_csv() for item in getattr(self, field.name)]
-
-    #         with open(file_name, "w", newline="") as csvfile:
-    #             writer = csv.DictWriter(csvfile, fieldnames=csv_headers)
-    #             writer.writeheader()
-    #             writer.writerows(csv_data)
-
-    def save_data_to_sql(self, sql_folder_path):
-        schema = "rstop500"
-        for field in fields(self):
-            file_name = os.path.join(sql_folder_path, f"{field.name}.sql")
-            baseSql = f"INSERT INTO {schema}.{field.name} {str(tuple(key for key in getattr(self, field.name)[0].get_field_names())).replace("'", "")} VALUES"
-            sql_data = [item.write_as_sql() for item in getattr(self, field.name)]
-
-            with open(file_name, "w", newline="") as sqlFile:
-                sqlFile.seek(0)
-                sqlFile.write(baseSql)
-                sqlFile.write("\n")
-                for i, row in enumerate(sql_data, start=1):
-                    if i != len(sql_data):
-                        sqlFile.write("{},\n".format(row))
-                    else:
-                        sqlFile.write("{};".format(row))
-
-    def save_data_to_json(self, json_folder_path):
-        for field in fields(self):
-            file_name = os.path.join(json_folder_path, f"{field.name}.json")
-            json_data = [item.write_as_dict() for item in getattr(self, field.name)]
-
-            with open(file_name, "w") as jsonFile:
-                jsonFile.seek(0)
-                json.dump(json_data, jsonFile, indent=4, sort_keys=True)
-                jsonFile.truncate()
-
-
-# Dataclass to store Rolling Stones Master Data.
-@dataclass
-class RollingStonesMasterData(MainDataProcessor):
-    rs_master_data: list[RollingStonesItem] = field(default_factory=list)
+from processors import RollingStonesItem, RollingStonesMasterData, SearchResults
 
 
 def spotfiy_search_results(rolling_stones_scraped_data):
@@ -70,9 +17,9 @@ def spotfiy_search_results(rolling_stones_scraped_data):
         authenticator.refreshToken()
 
     # Main Variables
-    search_results = SearchResults()
-    rolling_stones_data = RollingStonesMasterData()
     headers = authenticator.getHeaders()
+    rolling_stones_data = RollingStonesMasterData()
+    search_results = SearchResults(headers=headers)
     counter = 0
 
     # Looping trough the Rolling Stones dataset...
@@ -93,7 +40,7 @@ def spotfiy_search_results(rolling_stones_scraped_data):
 
         # Adding Track ID
         if track_id:
-            search_results.tracks.append(track_id)
+            search_results.tracks[track_id] = rs_item.rank
 
         # Adding Album ID and storing Rank if applicable.
         if album_id not in search_results.albums.keys():
@@ -127,22 +74,27 @@ def main(root_dir_path):
     )
 
     rolling_stones_master, search_results = spotfiy_search_results(
-        rolling_stones_scraped_data=rolling_stones_scraped_data[:10]
+        rolling_stones_scraped_data=rolling_stones_scraped_data[:5]
     )
 
-    # json_data = [item.write_as_dict() for item in rolling_stones_master.rs_master_data]
-    csv_data = [elem.write_to_csv() for elem in rolling_stones_master.rs_master_data]
-    csv_headers = rolling_stones_master.rs_master_data[0].get_field_names()
+    rolling_stones_master.tracks = search_results.fetch_batch_tracks()
+    rolling_stones_master.albums = search_results.fetch_batch_albums()
+    rolling_stones_master.artists = search_results.fetch_batch_artists()
 
-    rolling_stones_master.save_data_to_csv(
-        os.path.join(data_folder_path, "rolling_stones_master_data.csv"),
-        csv_headers=csv_headers,
-        csv_data=csv_data,
-    )
+    for t in rolling_stones_master.tracks:
+        print(t.write_as_dict())
 
-    print(search_results.tracks)
-    print(search_results.albums)
-    print(search_results.artists)
+    print("-" * 100)
+
+    for al in rolling_stones_master.albums:
+        print(al.write_as_dict())
+
+    print("-" * 100)
+
+    for ar in rolling_stones_master.artists:
+        print(ar.write_as_dict())
+
+    print("-" * 100)
 
 
 if __name__ == "__main__":

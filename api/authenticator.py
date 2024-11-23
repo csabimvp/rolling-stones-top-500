@@ -1,5 +1,6 @@
 import base64
 import json
+import platform
 import secrets
 import string
 from datetime import datetime, timedelta
@@ -14,7 +15,12 @@ class Authenticator:
 
     def __init__(self, account):
         self.account = account
-        self.path = "/home/csabimvp/code/rolling-stones-top-500/assets/credentials.json"
+        if platform.system() == "Windows":
+            self.path = r"E:\Code\rolling-stones-top-500\assets\credentials.json"
+        else:
+            self.path = (
+                "/home/csabimvp/code/rolling-stones-top-500/assets/credentials.json"
+            )
         self.today = datetime.now()
         self.keys = Authenticator.loadJson(path=self.path, account=self.account)
 
