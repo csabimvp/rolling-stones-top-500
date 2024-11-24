@@ -407,7 +407,7 @@ class MainDataProcessor:
 
             with open(file_name, "w", newline="") as sqlFile:
                 sqlFile.seek(0)
-                sqlFile.write("{},\n".format(baseSql))
+                sqlFile.write("{}\n".format(baseSql))
                 for i, row in enumerate(sql_data, start=1):
                     if i != len(sql_data):
                         sqlFile.write("{},\n".format(row))
