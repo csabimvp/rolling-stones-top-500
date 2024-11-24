@@ -1,9 +1,6 @@
-# import csv
 import json
 import os
 import pathlib
-
-# from dataclasses import asdict, dataclass, field, fields
 from datetime import datetime
 
 from authenticator import Authenticator
@@ -44,7 +41,8 @@ def spotfiy_search_results(rolling_stones_scraped_data):
 
         # Adding Album ID and storing Rank if applicable.
         if album_id not in search_results.albums.keys():
-            search_results.albums[album_id] = "NONE"
+            search_results.albums[album_id] = 0
+            # search_results.albums[album_id] = ""
         else:
             search_results.albums[album_id] = rs_item.rank
             print(f"{album_id} updated with: {rs_item.rank} Rolling Stones rank.")
@@ -69,32 +67,18 @@ def main(root_dir_path):
     rolling_stones_scraped_data_path = os.path.join(
         data_folder_path, "rolling_stones_master_data.json"
     )
-    rolling_stones_scraped_data = json.load(
-        open(rolling_stones_scraped_data_path, encoding="utf-8")
-    )
+    rolling_stones_scraped_data = json.load(open(rolling_stones_scraped_data_path))
 
     rolling_stones_master, search_results = spotfiy_search_results(
-        rolling_stones_scraped_data=rolling_stones_scraped_data[:5]
+        rolling_stones_scraped_data=rolling_stones_scraped_data
     )
 
     rolling_stones_master.tracks = search_results.fetch_batch_tracks()
     rolling_stones_master.albums = search_results.fetch_batch_albums()
     rolling_stones_master.artists = search_results.fetch_batch_artists()
 
-    for t in rolling_stones_master.tracks:
-        print(t.write_as_dict())
-
-    print("-" * 100)
-
-    for al in rolling_stones_master.albums:
-        print(al.write_as_dict())
-
-    print("-" * 100)
-
-    for ar in rolling_stones_master.artists:
-        print(ar.write_as_dict())
-
-    print("-" * 100)
+    rolling_stones_master.save_data_to_csv(csv_folder_path=data_folder_path)
+    rolling_stones_master.save_data_to_sql(sql_folder_path=sql_folder_path)
 
 
 if __name__ == "__main__":

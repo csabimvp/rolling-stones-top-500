@@ -23,7 +23,9 @@ class ApiSearchProcessor:
             return 1 - (diff_count / len(input_string))
 
         if self.data_type == "track":
-            returned_names = [item["name"] for item in api_response["tracks"]["items"]]
+            returned_names = [
+                item["name"] for item in api_response["tracks"]["items"] if item
+            ]
             similarity = [
                 compute_similarity(name, search_term) for name in returned_names
             ]
@@ -38,10 +40,11 @@ class ApiSearchProcessor:
         else:
             if len(api_response["albums"]["items"]) > 1:
                 returned_names = [
-                    item["name"] for item in api_response["albums"]["items"]
+                    item["name"] for item in api_response["albums"]["items"] if item
                 ]
                 similarity = [
-                    compute_similarity(name, search_term) for name in returned_names
+                    compute_similarity(name, search_term) if name else None
+                    for name in returned_names
                 ]
                 best_match_idx = similarity.index(max(similarity))
             else:
@@ -71,7 +74,10 @@ class DataProcessor:
             if field.type is list:
                 clean_list.append(f"ARRAY{getattr(self, field.name)}")
             elif field.type is str:
-                clean_list.append(getattr(self, field.name).replace("'", ""))
+                try:
+                    clean_list.append(getattr(self, field.name).replace("'", ""))
+                except AttributeError as e:
+                    print(e)
             else:
                 clean_list.append(getattr(self, field.name))
 
@@ -115,9 +121,15 @@ class RollingStonesItem(ApiSearchProcessor, DataProcessor):
     def get_search_results(self, headers) -> tuple:
         print(f"#{self.rank} - {self.raw_title} by {self.raw_artist}")
         search_term = f"{self.raw_artist} {self.raw_title}".replace("’", "")
-        self.track_id, self.album_id, self.artists = self.fetch_search_api(
+        track_id, album_id, artists = self.fetch_search_api(
             search_term=search_term, search_type=self.data_type, headers=headers
         )
+
+        if track_id:
+            self.track_id = track_id
+
+        self.album_id = album_id
+        self.artists = artists
 
         return (self.track_id, self.album_id, self.artists)
 
@@ -134,7 +146,7 @@ class Tracks(DataProcessor):
     track_number_on_album: int
     external_url: str
     uri: str
-    release_year: int
+    released_year: int
     album_id: str
 
     # Compare with Other Objects:
@@ -195,7 +207,7 @@ class Albums(DataProcessor):
     popularity: int
     total_tracks: int
     label: str
-    release_year: int
+    released_year: int
     album_image: str
     external_url: str
     uri: str
@@ -262,7 +274,7 @@ class SearchResults:
                     popularity = int(item["popularity"])
                     track_number = int(item["track_number"])
                     external_urls = item["external_urls"]["spotify"]
-                    release_year = int(item["album"]["release_date"][:4])
+                    released_year = int(item["album"]["release_date"][:4])
                     album_id = item["album"]["id"]
                     artists = [artist["id"] for artist in item["artists"]]
                     uri = item["uri"]
@@ -279,7 +291,7 @@ class SearchResults:
                         track_number_on_album=track_number,
                         external_url=external_urls,
                         uri=uri,
-                        release_year=release_year,
+                        released_year=released_year,
                     )
 
                     tracks_data.append(track)
@@ -349,7 +361,7 @@ class SearchResults:
                     label = item["label"]
                     external_url = item["external_urls"]["spotify"]
                     uri = item["uri"]
-                    release_year = int(item["release_date"][:4])
+                    released_year = int(item["release_date"][:4])
                     album_image = item["images"][0]["url"]
                     artist_ids = [artist["id"] for artist in item["artists"]]
 
@@ -362,7 +374,7 @@ class SearchResults:
                         label=label,
                         external_url=external_url,
                         uri=uri,
-                        release_year=release_year,
+                        released_year=released_year,
                         album_image=album_image,
                         artist_ids=artist_ids,
                     )
@@ -371,13 +383,8 @@ class SearchResults:
         return albums_data
 
 
+# Data Processor to save Master Data files.
 class MainDataProcessor:
-    # def save_data_to_csv(self, csv_file_path, csv_headers, csv_data):
-    #     with open(csv_file_path, "w", newline="") as csvfile:
-    #         writer = csv.DictWriter(csvfile, fieldnames=csv_headers)
-    #         writer.writeheader()
-    #         writer.writerows(csv_data)
-
     def save_data_to_csv(self, csv_folder_path):
         for field in fields(self):
             file_name = os.path.join(csv_folder_path, f"{field.name}.csv")
@@ -400,8 +407,7 @@ class MainDataProcessor:
 
             with open(file_name, "w", newline="") as sqlFile:
                 sqlFile.seek(0)
-                sqlFile.write(baseSql)
-                sqlFile.write("\n")
+                sqlFile.write("{},\n".format(baseSql))
                 for i, row in enumerate(sql_data, start=1):
                     if i != len(sql_data):
                         sqlFile.write("{},\n".format(row))
