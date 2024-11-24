@@ -7,6 +7,20 @@ CREATE DATABASE rolling_stones OWNER csabimvp;
 CREATE SCHEMA rstop500 AUTHORIZATION csabimvp;
 
 CREATE TABLE
+    IF NOT EXISTS rstop500.rs_master_data (
+        raw_artist VARCHAR,
+        description VARCHAR,
+        rs_rank INTEGER,
+        released_year INTEGER,
+        raw_title VARCHAR,
+        data_type VARCHAR,
+        writers VARCHAR,
+        track_id VARCHAR,
+        album_id VARCHAR,
+        artist_ids VARCHAR ARRAY
+    );
+
+CREATE TABLE
     IF NOT EXISTS rstop500.tracks (
         track_id VARCHAR PRIMARY KEY,
         track_name VARCHAR,
@@ -18,7 +32,7 @@ CREATE TABLE
         track_number_on_album NUMERIC,
         external_url VARCHAR,
         uri VARCHAR,
-        release_year INTEGER
+        released_year INTEGER
         -- album_id VARCHAR REFERENCES rstop500.albums
     );
 
@@ -42,7 +56,7 @@ CREATE TABLE
         popularity NUMERIC,
         total_tracks NUMERIC,
         label VARCHAR,
-        release_year INTEGER,
+        released_year INTEGER,
         album_image VARCHAR,
         external_url VARCHAR,
         uri VARCHAR,
@@ -52,7 +66,7 @@ CREATE TABLE
 
 ALTER TABLE rstop500.tracks ADD album_id VARCHAR REFERENCES rstop500.albums;
 
--- ALTER TABLE rstop500.albums ADD track_id VARCHAR REFERENCES rstop500.tracks;
--- ALTER TABLE rstop500.albums ADD artist_id VARCHAR REFERENCES rstop500.artists;
+ALTER TABLE rstop500.albums ADD track_id VARCHAR REFERENCES rstop500.tracks;
+
 -- \q
 -- exit
