@@ -49,20 +49,10 @@ def parse_page_content(page_content):
         except AttributeError:
             description = ""
 
-        credited = item.find(
-            "div", {"class": "c-gallery-vertical-album__subtitle"}
-        ).get_text()
-
-        try:
-            released_year = int(credited.split(",")[1].strip())
-        except IndexError:
-            released_year = 2005
-            writers = "EMI Manhattan"
-        except ValueError:
-            released_year = int(credited.split(",")[2].strip())
-            writers = "EMI Manhattan"
-
-        writers = credited.split(",")[0].strip()
+        rld_year = item.find("div", {"class": "rs-list-item--year"}).get_text()
+        released_year = int(rld_year[:4])
+        credited = item.find("div", {"class": "rs-list-item--credits"}).get_text()
+        writers = credited.split(":")[1].strip()
 
         article = ArticleData(
             rank=rank,
@@ -81,8 +71,8 @@ async def main(base_url, file_path):
     data = list()
     options = webdriver.ChromeOptions()
     next_button_xpaths = [
-        "/html/body/div[4]/main/div[3]/article/div/div[1]/div[1]/div/div/div[2]/a",
-        "/html/body/div[4]/main/div[3]/article/div/div[1]/div[1]/div/div/div[3]/a",
+        "/html/body/div[4]/main/div[3]/article/div/div[1]/div[1]/div/div[3]/div[2]/a",
+        "/html/body/div[4]/main/div[3]/article/div/div[1]/div[1]/div/div[3]/div[3]/a",
     ]
 
     async with webdriver.Chrome(options=options) as driver:
@@ -139,9 +129,11 @@ async def main(base_url, file_path):
 
 
 if __name__ == "__main__":
-    dir_path = pathlib.Path(__file__).parent.resolve()
-    file_name = "rolling_stones_top_500_albums"
-    base_url = "https://www.rollingstone.com/music/music-lists/best-albums-of-all-time-1062063/"
+    dir_path = pathlib.Path(__file__).parent.parent.resolve()
+    file_name = "rolling_stones_top_500_songs"
+    base_url = (
+        "https://www.rollingstone.com/music/music-lists/best-songs-of-all-time-1224767/"
+    )
     json_file_name = f"{file_name}.json"
     file_path = os.path.join(dir_path, "data", json_file_name)
     asyncio.run(main(base_url=base_url, file_path=file_path))
