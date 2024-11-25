@@ -11,3 +11,4 @@
 /sql/tracks.sql
 /sql/rs_master_data.sql
 /api/authenticator.py
+/api/example_responses
