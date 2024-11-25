@@ -10,3 +10,4 @@
 /sql/artists.sql
 /sql/tracks.sql
 /sql/rs_master_data.sql
+/api/authenticator.py

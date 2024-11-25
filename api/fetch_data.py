@@ -31,9 +31,9 @@ def spotfiy_search_results(rolling_stones_scraped_data):
             writers=rolling_stones_scraped_data[counter]["writers"],
         )
 
-        rolling_stones_data.rs_master_data.append(rs_item)
-
         track_id, album_id, artists = rs_item.get_search_results(headers=headers)
+
+        rolling_stones_data.rs_master_data.append(rs_item)
 
         # Adding Track ID
         if track_id:
