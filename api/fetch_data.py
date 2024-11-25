@@ -24,7 +24,7 @@ def spotfiy_search_results(rolling_stones_scraped_data):
         rs_item = RollingStonesItem(
             raw_artist=rolling_stones_scraped_data[counter]["artist"],
             description=rolling_stones_scraped_data[counter]["description"],
-            rank=rolling_stones_scraped_data[counter]["rank"],
+            rs_rank=rolling_stones_scraped_data[counter]["rank"],
             released_year=rolling_stones_scraped_data[counter]["released_year"],
             raw_title=rolling_stones_scraped_data[counter]["title"],
             data_type=rolling_stones_scraped_data[counter]["type"],
@@ -37,15 +37,15 @@ def spotfiy_search_results(rolling_stones_scraped_data):
 
         # Adding Track ID
         if track_id:
-            search_results.tracks[track_id] = rs_item.rank
+            search_results.tracks[track_id] = rs_item.rs_rank
 
         # Adding Album ID and storing Rank if applicable.
         if album_id not in search_results.albums.keys():
             search_results.albums[album_id] = 0
             # search_results.albums[album_id] = ""
         else:
-            search_results.albums[album_id] = rs_item.rank
-            print(f"{album_id} updated with: {rs_item.rank} Rolling Stones rank.")
+            search_results.albums[album_id] = rs_item.rs_rank
+            print(f"{album_id} updated with: {rs_item.rs_rank} Rolling Stones rank.")
 
         # Storing Artist ID and capturing respective Album IDs.
         for artist in artists:
@@ -67,7 +67,9 @@ def main(root_dir_path):
     rolling_stones_scraped_data_path = os.path.join(
         data_folder_path, "rolling_stones_master_data.json"
     )
-    rolling_stones_scraped_data = json.load(open(rolling_stones_scraped_data_path))
+    rolling_stones_scraped_data = json.load(
+        open(rolling_stones_scraped_data_path, encoding="utf-8")
+    )
 
     rolling_stones_master, search_results = spotfiy_search_results(
         rolling_stones_scraped_data=rolling_stones_scraped_data

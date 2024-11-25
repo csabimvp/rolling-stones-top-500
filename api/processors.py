@@ -109,19 +109,19 @@ class DataProcessor:
 class RollingStonesItem(ApiSearchProcessor, DataProcessor):
     raw_artist: str
     description: str
-    rank: int
+    rs_rank: int
     released_year: int
     raw_title: str
     data_type: str
     writers: str
     track_id: str = field(default_factory=str)
     album_id: str = field(default_factory=str)
-    artists: list = field(default_factory=list)
+    artist_ids: list = field(default_factory=list)
 
     def get_search_results(self, headers) -> tuple:
-        print(f"#{self.rank} - {self.raw_title} by {self.raw_artist}")
+        print(f"#{self.rs_rank} - {self.raw_title} by {self.raw_artist}")
         search_term = f"{self.raw_artist} {self.raw_title}".replace("’", "")
-        track_id, album_id, artists = self.fetch_search_api(
+        track_id, album_id, artist_ids = self.fetch_search_api(
             search_term=search_term, search_type=self.data_type, headers=headers
         )
 
@@ -129,9 +129,9 @@ class RollingStonesItem(ApiSearchProcessor, DataProcessor):
             self.track_id = track_id
 
         self.album_id = album_id
-        self.artists = artists
+        self.artist_ids = artist_ids
 
-        return (self.track_id, self.album_id, self.artists)
+        return (self.track_id, self.album_id, self.artist_ids)
 
 
 @dataclass
@@ -295,6 +295,7 @@ class SearchResults:
                     )
 
                     tracks_data.append(track)
+                print(f"Number of Tracks downloaded: {len(tracks_data)}")
         return tracks_data
 
     def fetch_batch_artists(self):
@@ -316,12 +317,16 @@ class SearchResults:
                     artist_id = item["id"]
                     artist_name = item["name"]
                     genres = item["genres"]
-                    cleaned_genres = [genre.replace("'", "") for genre in genres]
                     total_followers = item["followers"]["total"]
                     popularity = item["popularity"]
                     external_url = item["external_urls"]["spotify"]
                     uri = item["uri"]
                     albums = self.artists[artist_id]
+
+                    if len(genres) > 1:
+                        cleaned_genres = [genre.replace("'", "") for genre in genres]
+                    else:
+                        cleaned_genres = ["NONE"]
 
                     artist = Artists(
                         artist_id=artist_id,
@@ -335,6 +340,7 @@ class SearchResults:
                     )
 
                     artists_data.append(artist)
+                print(f"Number of Artists downloaded: {len(artists_data)}")
         return artists_data
 
     def fetch_batch_albums(self):
@@ -380,6 +386,7 @@ class SearchResults:
                     )
 
                     albums_data.append(album)
+                print(f"Number of Albums downloaded: {len(albums_data)}")
         return albums_data
 
 
@@ -393,7 +400,7 @@ class MainDataProcessor:
             ]
             csv_data = [item.write_to_csv() for item in getattr(self, field.name)]
 
-            with open(file_name, "w", newline="") as csvfile:
+            with open(file_name, "w", newline="", encoding="utf-8") as csvfile:
                 writer = csv.DictWriter(csvfile, fieldnames=csv_headers)
                 writer.writeheader()
                 writer.writerows(csv_data)
@@ -405,7 +412,7 @@ class MainDataProcessor:
             baseSql = f"INSERT INTO {schema}.{field.name} {str(tuple(key for key in getattr(self, field.name)[0].get_field_names())).replace("'", "")} VALUES"
             sql_data = [item.write_as_sql() for item in getattr(self, field.name)]
 
-            with open(file_name, "w", newline="") as sqlFile:
+            with open(file_name, "w", newline="", encoding="utf-8") as sqlFile:
                 sqlFile.seek(0)
                 sqlFile.write("{}\n".format(baseSql))
                 for i, row in enumerate(sql_data, start=1):
@@ -419,7 +426,7 @@ class MainDataProcessor:
             file_name = os.path.join(json_folder_path, f"{field.name}.json")
             json_data = [item.write_as_dict() for item in getattr(self, field.name)]
 
-            with open(file_name, "w") as jsonFile:
+            with open(file_name, "w", encoding="utf-8") as jsonFile:
                 jsonFile.seek(0)
                 json.dump(json_data, jsonFile, indent=4, sort_keys=True)
                 jsonFile.truncate()
