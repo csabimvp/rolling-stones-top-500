@@ -24,10 +24,10 @@ class ApiSearchProcessor:
 
         if self.data_type == "track":
             returned_names = [
-                item["name"] for item in api_response["tracks"]["items"] if item
+                item["name"].lower() for item in api_response["tracks"]["items"] if item
             ]
             similarity = [
-                compute_similarity(name, search_term) for name in returned_names
+                compute_similarity(name, search_term.lower()) for name in returned_names
             ]
             best_match_idx = similarity.index(max(similarity))
             track_id = api_response["tracks"]["items"][best_match_idx]["id"]
@@ -40,13 +40,20 @@ class ApiSearchProcessor:
         else:
             if len(api_response["albums"]["items"]) > 1:
                 returned_names = [
-                    item["name"] for item in api_response["albums"]["items"] if item
+                    # item["name"] for item in api_response["albums"]["items"] if item
+                    item["name"].lower()
+                    for item in api_response["albums"]["items"]
+                    if item
                 ]
+                # print(returned_names)
                 similarity = [
-                    compute_similarity(name, search_term) if name else None
+                    # compute_similarity(name, search_term) if name else None
+                    compute_similarity(name, search_term.lower()) if name else None
                     for name in returned_names
                 ]
+                # print(similarity)
                 best_match_idx = similarity.index(max(similarity))
+                # print(best_match_idx)
             else:
                 best_match_idx = 0
             track_id = None
