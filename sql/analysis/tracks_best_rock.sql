@@ -29,7 +29,8 @@ WITH
                 'rock',
                 'classic rock',
                 'hard rock',
-                'rock-and-roll'
+                'rock-and-roll',
+                'soul'
             )
     ),
     tracks_cte AS (

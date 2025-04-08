@@ -22,6 +22,8 @@ WITH
             ARRAY_AGG (Genre) OVER (
                 PARTITION BY
                     artist_id
+                ORDER BY
+                    Genre
             ) as filter_genres
         FROM
             artist_genres
